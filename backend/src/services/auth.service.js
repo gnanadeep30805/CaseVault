@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import bcrypt from 'bcrypt';
+import { authenticator } from 'otplib';
 import { env } from '../config/env.js';
 
 const users = [
@@ -8,12 +10,12 @@ const users = [
         name: 'System Admin',
         email: 'admin@casevault.local',
         username: 'admin',
-        passwordHash: '$2b$10$QhX4xA0HShC8kzA6XvJrQeBq0x5kK9aPrpP7V7vX2FvRr3rG4yT2i',
+        passwordHash: env.devPasswordHash,
         role: 'Administrator',
         department: 'Administration',
         status: 'active',
         mfaEnabled: true,
-        mfaSecret: 'JBSWY3DPEHPK3PXP',
+        mfaSecret: env.mfaSecret,
         lastLogin: null,
     },
     {
@@ -21,12 +23,12 @@ const users = [
         name: 'Aisha Rahman',
         email: 'investigator@casevault.local',
         username: 'investigator',
-        passwordHash: '$2b$10$QhX4xA0HShC8kzA6XvJrQeBq0x5kK9aPrpP7V7vX2FvRr3rG4yT2i',
+        passwordHash: env.devPasswordHash,
         role: 'Investigation Officer',
         department: 'Criminal Investigation',
         status: 'active',
         mfaEnabled: true,
-        mfaSecret: 'JBSWY3DPEHPK3PXP',
+        mfaSecret: env.mfaSecret,
         lastLogin: null,
     },
     {
@@ -34,7 +36,7 @@ const users = [
         name: 'Arjun Nair',
         email: 'supervisor@casevault.local',
         username: 'supervisor',
-        passwordHash: '$2b$10$QhX4xA0HShC8kzA6XvJrQeBq0x5kK9aPrpP7V7vX2FvRr3rG4yT2i',
+        passwordHash: env.devPasswordHash,
         role: 'Supervisor',
         department: 'Operations',
         status: 'active',
@@ -68,7 +70,7 @@ function createRefreshToken(user) {
 
 export async function loginUser({ identifier, password, otp }) {
     const user = getUserByIdentifier(identifier);
-    if (!user || password !== 'password123') {
+    if (!user || user.status !== 'active' || !await bcrypt.compare(String(password || ''), user.passwordHash)) {
         throw Object.assign(new Error('Invalid credentials.'), { code: 'INVALID_CREDENTIALS', status: 401 });
     }
 
@@ -80,8 +82,7 @@ export async function loginUser({ identifier, password, otp }) {
             };
         }
 
-        const expected = '123456';
-        if (otp !== expected) {
+        if (!otp || !authenticator.check(String(otp), user.mfaSecret)) {
             throw Object.assign(new Error('Invalid MFA code.'), { code: 'INVALID_MFA', status: 401 });
         }
     }

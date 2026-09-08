@@ -1,6 +1,7 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { sha3Hash, verifyAuditChain } from '../services/security-core.js';
+import { readCollection } from '../services/store.js';
 
 const router = express.Router();
 
@@ -27,13 +28,21 @@ const auditLogs = [
     },
 ];
 
-router.get('/', requireAuth, (req, res) => {
-    res.status(200).json({ success: true, data: auditLogs });
+router.get('/', requireAuth, async (req, res, next) => {
+    try {
+        res.status(200).json({ success: true, data: await readCollection('auditLogs') });
+    } catch (error) {
+        next(error);
+    }
 });
 
-router.post('/verify-chain', requireAuth, (req, res) => {
-    const result = verifyAuditChain(auditLogs);
-    res.status(200).json({ success: true, data: result });
+router.post('/verify-chain', requireAuth, async (req, res, next) => {
+    try {
+        const result = verifyAuditChain(await readCollection('auditLogs'));
+        res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
 });
 
 export default router;

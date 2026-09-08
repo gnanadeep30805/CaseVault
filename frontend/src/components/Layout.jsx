@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { Activity, Archive, Bell, BriefcaseBusiness, FileText, Gauge, ShieldCheck, Shield, UserCircle2 } from 'lucide-react';
 
 const navItems = [
@@ -15,13 +16,20 @@ const navItems = [
 ];
 
 export default function Layout({ onLogout, user }) {
+    const [theme, setTheme] = useState(() => localStorage.getItem('casevault_theme') || 'light');
+
+    useEffect(() => {
+        document.documentElement.dataset.theme = theme;
+        localStorage.setItem('casevault_theme', theme);
+    }, [theme]);
+
     return (
         <div className="app-shell">
             <aside className="sidebar">
-                <div className="sidebar-header">
+                <Link className="sidebar-header" to="/">
                     <div style={{ width: 32, height: 32, borderRadius: 10, background: '#2563eb', display: 'grid', placeItems: 'center', fontWeight: 800 }}>C</div>
                     <span>CaseVault</span>
-                </div>
+                </Link>
                 <nav className="sidebar-nav">
                     {navItems.map(({ to, label, icon: Icon }) => (
                         <NavLink key={to} to={to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
@@ -39,7 +47,7 @@ export default function Layout({ onLogout, user }) {
                     </div>
                     <div className="topbar-right">
                         <Bell size={18} />
-                        <button className="btn btn-secondary" type="button">Dark</button>
+                        <button className="btn btn-secondary" type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">{theme === 'dark' ? 'Light' : 'Dark'}</button>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e2e8f0', display: 'grid', placeItems: 'center', fontWeight: 700 }}>
                                 {user?.name?.charAt(0) || 'A'}

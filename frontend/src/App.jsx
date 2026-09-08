@@ -51,9 +51,13 @@ function App() {
         return data;
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        try {
+            if (auth.refreshToken) await api.post('/auth/logout', { refreshToken: auth.refreshToken });
+        } finally {
         localStorage.removeItem('casevault_auth');
         setAuth({ token: null, user: null, refreshToken: null });
+        }
     };
 
     return (

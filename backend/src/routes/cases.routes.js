@@ -1,80 +1,98 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
+import { addAuditEvent, appendToCollection, readCollection, updateCollectionItem } from '../services/store.js';
 
 const router = express.Router();
+const allowedStatuses = ['Created', 'Under Investigation', 'Evidence Collection', 'Investigation Review', 'Legal Review', 'Closed', 'Archived'];
+const transitions = {
+    Created: ['Under Investigation', 'Archived'],
+    'Under Investigation': ['Evidence Collection', 'Archived'],
+    'Evidence Collection': ['Investigation Review', 'Archived'],
+    'Investigation Review': ['Legal Review', 'Archived'],
+    'Legal Review': ['Closed', 'Archived'],
+    Closed: ['Archived'],
+    Archived: [],
+};
 
-const cases = [
-    {
-        id: 'case-1001',
-        caseNumber: 'CV-2025-001',
-        title: 'Operation North Ridge',
-        type: 'Criminal',
-        description: 'Cross-border smuggling investigation.',
-        priority: 'High',
-        department: 'Criminal Investigation',
-        status: 'Under Investigation',
-        assignedOfficer: 'Aisha Rahman',
-        createdAt: '2025-01-15T09:00:00Z',
-        updatedAt: '2025-01-18T11:30:00Z',
-        classification: 'Confidential',
-    },
-    {
-        id: 'case-1002',
-        caseNumber: 'CV-2025-002',
-        title: 'Forgery Network Review',
-        type: 'Financial Crime',
-        description: 'Document fraud and identity misuse.',
-        priority: 'Medium',
-        department: 'Cyber Crime',
-        status: 'Evidence Collection',
-        assignedOfficer: 'Arjun Nair',
-        createdAt: '2025-01-20T12:00:00Z',
-        updatedAt: '2025-01-22T09:00:00Z',
-        classification: 'Restricted',
-    },
-];
-
-router.get('/', requireAuth, (req, res) => {
-    res.status(200).json({ success: true, data: cases });
+router.get('/', requireAuth, async (req, res, next) => {
+    try {
+        const items = await readCollection('cases');
+        const query = String(req.query.search || '').trim().toLowerCase();
+        const status = String(req.query.status || '').trim();
+        const filtered = items.filter((item) => {
+            const matchesQuery = !query || [item.id, item.caseNumber, item.title, item.type].some((value) => String(value).toLowerCase().includes(query));
+            return matchesQuery && (!status || item.status === status);
+        });
+        res.status(200).json({ success: true, data: filtered });
+    } catch (error) {
+        next(error);
+    }
 });
 
-router.post('/', requireAuth, (req, res) => {
+router.post('/', requireAuth, async (req, res, next) => {
     const body = req.body || {};
+    if (!body.caseNumber || !body.title || !body.type || !body.priority || !body.department || !body.classification) {
+        return res.status(422).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Case number, title, type, priority, department, and classification are required.' } });
+    }
+    try {
+        const items = await readCollection('cases');
+        if (items.some((item) => item.caseNumber === body.caseNumber)) {
+            return res.status(409).json({ success: false, error: { code: 'DUPLICATE_CASE_NUMBER', message: 'Case number already exists.' } });
+        }
+        const timestamp = new Date().toISOString();
     const newCase = {
         id: `case-${Date.now()}`,
-        caseNumber: body.caseNumber || `CV-${Date.now()}`,
-        title: body.title || 'Untitled Case',
-        type: body.type || 'Criminal',
+        caseNumber: body.caseNumber,
+        title: body.title,
+        type: body.type,
         description: body.description || '',
-        priority: body.priority || 'Medium',
-        department: body.department || 'General',
+        priority: body.priority,
+        department: body.department,
         status: 'Created',
         assignedOfficer: body.assignedOfficer || 'Unassigned',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        classification: body.classification || 'Internal',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        classification: body.classification,
     };
-
-    cases.unshift(newCase);
-    res.status(201).json({ success: true, data: newCase });
+        await appendToCollection('cases', newCase);
+        await addAuditEvent({ actor: req.user.id, action: 'CASE_CREATED', resource: 'Case', resourceId: newCase.id, metadata: { caseNumber: newCase.caseNumber } });
+        res.status(201).json({ success: true, data: newCase });
+    } catch (error) {
+        next(error);
+    }
 });
 
-router.get('/:id', requireAuth, (req, res) => {
-    const found = cases.find((item) => item.id === req.params.id);
+router.get('/:id', requireAuth, async (req, res, next) => {
+    try {
+    const items = await readCollection('cases');
+    const found = items.find((item) => item.id === req.params.id);
     if (!found) {
         return res.status(404).json({ success: false, error: { code: 'CASE_NOT_FOUND', message: 'Case not found.' } });
     }
     res.status(200).json({ success: true, data: found });
+    } catch (error) {
+        next(error);
+    }
 });
 
-router.patch('/:id/status', requireAuth, (req, res) => {
-    const found = cases.find((item) => item.id === req.params.id);
+router.patch('/:id/status', requireAuth, async (req, res, next) => {
+    try {
+    const items = await readCollection('cases');
+    const found = items.find((item) => item.id === req.params.id);
     if (!found) {
         return res.status(404).json({ success: false, error: { code: 'CASE_NOT_FOUND', message: 'Case not found.' } });
     }
-    found.status = req.body?.status || found.status;
-    found.updatedAt = new Date().toISOString();
-    res.status(200).json({ success: true, data: found });
+    const nextStatus = req.body?.status;
+    const previousStatus = found.status;
+    if (!allowedStatuses.includes(nextStatus) || !transitions[found.status]?.includes(nextStatus)) {
+        return res.status(409).json({ success: false, error: { code: 'INVALID_STATUS_TRANSITION', message: `Cannot transition case from ${found.status} to ${nextStatus || 'unknown'}.` } });
+    }
+    const updated = await updateCollectionItem('cases', found.id, { status: nextStatus, updatedAt: new Date().toISOString() });
+    await addAuditEvent({ actor: req.user.id, action: 'CASE_STATUS_CHANGED', resource: 'Case', resourceId: found.id, metadata: { from: previousStatus, to: nextStatus } });
+    res.status(200).json({ success: true, data: updated });
+    } catch (error) {
+        next(error);
+    }
 });
 
 export default router;

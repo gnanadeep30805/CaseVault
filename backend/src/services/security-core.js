@@ -109,13 +109,9 @@ export function verifyMerkleProof(rootHash, proof, value) {
 export function verifyAuditChain(events) {
     let previousHash = 'GENESIS';
     for (const event of events) {
-        const canonical = JSON.stringify({
-            eventId: event.eventId,
-            actor: event.actor,
-            timestamp: event.timestamp,
-            data: event.data,
-            previousHash,
-        });
+        const canonical = event.data
+            ? JSON.stringify({ eventId: event.eventId, actor: event.actor, timestamp: event.timestamp, data: event.data, previousHash })
+            : JSON.stringify({ eventId: event.eventId, actor: event.actor, timestamp: event.timestamp, action: event.action, resource: event.resource, resourceId: event.resourceId, metadata: event.metadata || {}, previousHash });
         const expectedHash = sha3Hash(canonical);
         const actualHash = event.currentHash;
         if (!actualHash) {

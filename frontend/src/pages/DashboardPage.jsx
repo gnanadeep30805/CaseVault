@@ -1,73 +1,13 @@
-const stats = [
-    { label: 'Active Cases', value: 148 },
-    { label: 'Pending Reviews', value: 26 },
-    { label: 'Evidence Items', value: 386 },
-    { label: 'Documents', value: 1024 },
-    { label: 'Assigned Assets', value: 89 },
-    { label: 'Security Alerts', value: 7 },
-];
-
-const activity = [
-    { time: '09:15', user: 'A. Rahman', action: 'Case updated', resource: 'CV-2025-001', status: 'Success' },
-    { time: '10:40', user: 'J. Patel', action: 'Document approved', resource: 'FIR-14', status: 'Success' },
-    { time: '11:05', user: 'K. Singh', action: 'Evidence transferred', resource: 'EV-003', status: 'In Review' },
-    { time: '12:20', user: 'L. Chen', action: 'Asset assigned', resource: 'AS-101', status: 'Success' },
-];
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { api } from '../services/api.js';
 
 export default function DashboardPage() {
-    return (
-        <div>
-            <div className="page-header">
-                <div>
-                    <h1>Dashboard</h1>
-                </div>
-            </div>
-
-            <div className="grid grid-4" style={{ marginBottom: 20 }}>
-                {stats.map((stat) => (
-                    <div className="card stat-card" key={stat.label}>
-                        <div className="stat-label">{stat.label}</div>
-                        <div className="stat-value">{stat.value}</div>
-                    </div>
-                ))}
-            </div>
-
-            <div className="grid" style={{ gridTemplateColumns: '1.5fr 1fr', gap: 16 }}>
-                <div className="card" style={{ padding: 20 }}>
-                    <h3>Recent activity</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Time</th>
-                                <th>User</th>
-                                <th>Action</th>
-                                <th>Resource</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {activity.map((item) => (
-                                <tr key={`${item.time}-${item.resource}`}>
-                                    <td>{item.time}</td>
-                                    <td>{item.user}</td>
-                                    <td>{item.action}</td>
-                                    <td>{item.resource}</td>
-                                    <td><span className="badge status">{item.status}</span></td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                <div className="card" style={{ padding: 20 }}>
-                    <h3>Security</h3>
-                    <div style={{ display: 'grid', gap: 12 }}>
-                        <div><strong>Failed login attempts</strong><div className="muted">3 in last 24 hours</div></div>
-                        <div><strong>Recent access events</strong><div className="muted">12 verified sessions</div></div>
-                        <div><strong>Pending MFA events</strong><div className="muted">2 requiring review</div></div>
-                        <div><strong>Integrity status</strong><div className="muted">Nominal, no drift detected</div></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+    const [data, setData] = useState(null);
+    const [error, setError] = useState('');
+    useEffect(() => { Promise.all([api.get('/cases'), api.get('/documents'), api.get('/evidence'), api.get('/audit'), api.get('/security/overview')]).then(([cases, documents, evidence, audit, security]) => setData({ cases: cases.data.data || [], documents: documents.data.data || [], evidence: evidence.data.data || [], audit: audit.data.data || [], security: security.data.data })).catch((requestError) => setError(requestError?.response?.data?.error?.message || 'Unable to load dashboard.')); }, []);
+    if (error) return <div className="card" style={{ padding: 20 }}><p className="error">{error}</p></div>;
+    if (!data) return <div className="card" style={{ padding: 20 }}><p className="muted">Loading dashboard...</p></div>;
+    const stats = [{ label: 'Active Cases', value: data.cases.filter((item) => !['Closed', 'Archived'].includes(item.status)).length }, { label: 'Pending Reviews', value: data.documents.filter((item) => item.status === 'Pending').length }, { label: 'Evidence Items', value: data.evidence.length }, { label: 'Documents', value: data.documents.length }, { label: 'Audit Events', value: data.audit.length }, { label: 'Security Alerts', value: data.security?.authentication?.lockedAccounts || 0 }];
+    return <div><div className="page-header"><h1>Dashboard</h1></div><div className="grid grid-4" style={{ marginBottom: 20 }}>{stats.map((stat) => <div className="card stat-card" key={stat.label}><div className="stat-label">{stat.label}</div><div className="stat-value">{stat.value}</div></div>)}</div><div className="grid" style={{ gridTemplateColumns: '1.5fr 1fr', gap: 16 }}><div className="card" style={{ padding: 20 }}><h3>Recent activity</h3>{data.audit.length === 0 ? <p className="muted">No activity recorded.</p> : <table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Resource</th></tr></thead><tbody>{data.audit.slice(-6).reverse().map((item) => <tr key={item.eventId}><td>{new Date(item.timestamp).toLocaleTimeString()}</td><td>{item.actor}</td><td>{item.action}</td><td>{item.resourceId}</td></tr>)}</tbody></table>}</div><div className="card" style={{ padding: 20 }}><h3>Security</h3><p><strong>Failed logins:</strong> {data.security?.authentication?.failedLogins ?? 0}</p><p><strong>Denied requests:</strong> {data.security?.authorization?.deniedRequests ?? 0}</p><p><strong>Integrity:</strong> {data.security?.integrity?.failedVerification ? 'Review required' : 'Nominal'}</p><Link className="btn btn-secondary" to="/security">Open Security Center</Link></div></div></div>;
 }

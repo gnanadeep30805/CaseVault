@@ -12,6 +12,7 @@ import documentRoutes from './routes/documents.routes.js';
 import evidenceRoutes from './routes/evidence.routes.js';
 import auditRoutes from './routes/audit.routes.js';
 import securityRoutes from './routes/security.routes.js';
+import assetRoutes from './routes/assets.routes.js';
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use('/api/v1/documents', documentRoutes);
 app.use('/api/v1/evidence', evidenceRoutes);
 app.use('/api/v1/audit', auditRoutes);
 app.use('/api/v1/security', securityRoutes);
+app.use('/api/v1/assets', assetRoutes);
 
 app.use((req, res) => {
     res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Route not found.' } });
