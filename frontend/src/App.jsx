@@ -11,6 +11,11 @@ import AssetsPage from './pages/AssetsPage.jsx';
 import AuditPage from './pages/AuditPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
+import SecurityPage from './pages/SecurityPage.jsx';
+import VerificationPage from './pages/VerificationPage.jsx';
+import DocumentIntegrityPage from './pages/DocumentIntegrityPage.jsx';
+import EvidenceIntegrityPage from './pages/EvidenceIntegrityPage.jsx';
+import AuditIntegrityPage from './pages/AuditIntegrityPage.jsx';
 import Layout from './components/Layout.jsx';
 import { api } from './services/api.js';
 
@@ -60,9 +65,14 @@ function App() {
                 <Route path="cases" element={<CasesPage />} />
                 <Route path="cases/:id" element={<CaseDetailPage />} />
                 <Route path="documents" element={<DocumentsPage />} />
+                <Route path="documents/:id/integrity" element={<DocumentIntegrityPage />} />
                 <Route path="evidence" element={<EvidencePage />} />
+                <Route path="evidence/:id/integrity" element={<EvidenceIntegrityPage />} />
                 <Route path="assets" element={<AssetsPage />} />
                 <Route path="audit" element={<AuditPage />} />
+                <Route path="audit/integrity" element={<AuditIntegrityPage />} />
+                <Route path="security" element={<SecurityPage />} />
+                <Route path="verification" element={<VerificationPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="profile" element={<ProfilePage user={auth.user} />} />
             </Route>

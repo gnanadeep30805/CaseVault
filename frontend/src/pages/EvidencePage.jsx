@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 const evidence = [
     { id: 'EV-001', case: 'CV-2025-001', type: 'Digital', description: 'Recovered phone image set', collectedBy: 'M. Rao', collectionDate: '2025-01-16', currentCustodian: 'Forensics Unit', location: 'Evidence Locker 3', status: 'Verified' },
     { id: 'EV-002', case: 'CV-2025-002', type: 'Physical', description: 'Seized ledger book', collectedBy: 'D. Prasad', collectionDate: '2025-01-21', currentCustodian: 'Ops Desk', location: 'Secure Vault', status: 'Stored' },
@@ -23,6 +25,7 @@ export default function EvidencePage() {
                             <th>Current Custodian</th>
                             <th>Location</th>
                             <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -37,6 +40,9 @@ export default function EvidencePage() {
                                 <td>{item.currentCustodian}</td>
                                 <td>{item.location}</td>
                                 <td>{item.status}</td>
+                                <td>
+                                    <Link to={`/evidence/${item.id}/integrity`} className="btn btn-secondary">Integrity</Link>
+                                </td>
                             </tr>
                         ))}
                     </tbody>

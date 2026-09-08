@@ -8,6 +8,8 @@ const navItems = [
     { to: '/evidence', label: 'Evidence', icon: Shield },
     { to: '/assets', label: 'Assets', icon: Archive },
     { to: '/audit', label: 'Audit Logs', icon: Activity },
+    { to: '/security', label: 'Security', icon: ShieldCheck },
+    { to: '/verification', label: 'Verification', icon: Shield },
     { to: '/settings', label: 'Settings', icon: ShieldCheck },
     { to: '/profile', label: 'Profile', icon: UserCircle2 },
 ];

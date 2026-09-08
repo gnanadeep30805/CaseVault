@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 const documents = [
     { id: 'DOC-001', fileName: 'FIR_0412.pdf', case: 'CV-2025-001', category: 'FIR', classification: 'Confidential', version: '1.0', uploadedBy: 'A. Rahman', uploadedAt: '2025-02-10', status: 'Approved' },
     { id: 'DOC-002', fileName: 'Statement_011.xml', case: 'CV-2025-002', category: 'Statement', classification: 'Restricted', version: '2.0', uploadedBy: 'K. Singh', uploadedAt: '2025-02-11', status: 'Pending' },
@@ -23,6 +25,7 @@ export default function DocumentsPage() {
                             <th>Uploaded By</th>
                             <th>Uploaded Date</th>
                             <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -37,6 +40,9 @@ export default function DocumentsPage() {
                                 <td>{item.uploadedBy}</td>
                                 <td>{item.uploadedAt}</td>
                                 <td>{item.status}</td>
+                                <td>
+                                    <Link to={`/documents/${item.id}/integrity`} className="btn btn-secondary">Integrity</Link>
+                                </td>
                             </tr>
                         ))}
                     </tbody>

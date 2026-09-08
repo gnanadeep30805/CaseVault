@@ -1,523 +1,71 @@
-<div align="center">
-  
-# 🔐 CaseVault
+# CaseVault
 
-### Secure Digital Case, Evidence & Police Asset Lifecycle Management System
+CaseVault is a working security-focused case, document, and evidence management application built on React + Express. The project keeps the existing UI theme and expands the current app with a real cryptographic and integrity layer for Half 2 development.
 
-<p align="center">
-  <strong>Secure. Track. Preserve. Verify.</strong><br/>
-  A security-first digital platform for managing sensitive legal documents, investigation evidence, case workflows, and police assets.
-</p>
+## Current status
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Frontend-React%20%2B%20JavaScript-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React"/>
-  <img src="https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js"/>
-  <img src="https://img.shields.io/badge/Database-PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL"/>
-  <img src="https://img.shields.io/badge/Storage-MinIO%20%2F%20S3-C72E49?style=for-the-badge" alt="Object Storage"/>
-  <img src="https://img.shields.io/badge/Security-AES--256--GCM-111827?style=for-the-badge" alt="AES-256-GCM"/>
-</p>
+### Implemented
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Auth-JWT%20%2B%20MFA-7C3AED?style=for-the-badge" alt="JWT MFA"/>
-  <img src="https://img.shields.io/badge/Search-OpenSearch-005EB8?style=for-the-badge" alt="OpenSearch"/>
-  <img src="https://img.shields.io/badge/Blockchain-Hyperledger%20Fabric-2F3134?style=for-the-badge" alt="Hyperledger Fabric"/>
-</p>
-</div>
+- JWT-based authentication flow with MFA check
+- Protected API routes and auth middleware
+- Case listing and creation endpoints
+- Security overview and event/alert endpoints
+- AES-256-GCM encryption helpers
+- SHA3-256 hashing helpers
+- HKDF-based key derivation using Node.js crypto
+- Merkle tree generation and verification
+- Audit and custody hash-chain validation
+- Zero-trust access-policy evaluation
+- Security dashboard and verification screen in the frontend
+- Documentation for architecture, security, cryptography, authorization, and evidence-chain flow
 
+### Not claimed as completed
 
----
+The following are intentionally documented as architecture or future enhancement work rather than implemented production services:
 
-# 1. Project Overview
+- OpenSearch indexing
+- OCR processing pipeline
+- RabbitMQ workers
+- AI/RAG assistant with authorized retrieval
+- Hyperledger Fabric ledger anchoring
+- MinIO object lifecycle and production key management
+- Production monitoring and Grafana/Prometheus deployment
 
-**CaseVault** is a secure digital document, case, evidence, and police asset lifecycle management platform designed for environments where confidentiality, integrity, traceability, and controlled collaboration are critical.
+## Development notes
 
-The platform provides a unified environment for:
+- The app keeps its existing visual system and does not replace the established design language.
+- Security verification is evaluated server-side.
+- The backend can be extended to PostgreSQL, MinIO, Redis, OpenSearch, and blockchain adapters without changing the application contract.
 
-- Digital case management
-- Sensitive legal document management
-- Evidence registration and chain-of-custody tracking
-- Police asset lifecycle management
-- Role-based and attribute-based access control
-- Multi-factor authentication
-- Encryption at rest and in transit
-- Cryptographic integrity verification
-- Tamper-evident audit trails
-- Digital signatures
-- Permissioned blockchain-based verification
-- OCR-powered document search
-- AI-assisted authorized document retrieval
-- Notifications and workflow management
-- Compliance-oriented retention and archival
+## Local run
 
-The project is designed for an **SIH-style prototype**, while its architecture is structured so that it can evolve toward an enterprise-grade deployment.
+Backend:
 
-> **Core principle:** Actual sensitive files are stored outside the blockchain. The blockchain stores verifiable proofs and transaction metadata.
-
----
-
-# 2. Problem Statement
-
-Law enforcement agencies, legal institutions, forensic departments, and investigative organizations handle large volumes of highly sensitive information.
-
-Examples include:
-
-- FIRs
-- Investigation reports
-- Statements
-- Charge sheets
-- Warrants
-- Court orders
-- Forensic reports
-- Medical reports
-- CCTV recordings
-- Photographs
-- Digital evidence
-- Evidence transfer records
-- Police asset records
-
-Traditional document management approaches can create problems such as:
-
-- Fragmented storage
-- Unauthorized access
-- Accidental modification
-- Weak document provenance
-- Missing audit history
-- Manual evidence tracking
-- Difficult cross-department collaboration
-- Poor searchability
-- Lack of cryptographic integrity verification
-- Weak asset lifecycle visibility
-- Difficulty proving whether a document was changed after approval
-
-CaseVault addresses these problems through a centralized, security-first digital platform.
-
----
-
-# 3. Objectives
-
-### Primary Objectives
-
-1. Digitize and centralize sensitive legal and investigation records.
-2. Secure documents using authenticated encryption.
-3. Restrict access using RBAC, ABAC, and Zero Trust principles.
-4. Maintain complete, tamper-evident audit history.
-5. Track evidence throughout its chain of custody.
-6. Manage police assets from procurement to disposal.
-7. Provide fast full-text and semantic document retrieval.
-8. Preserve document and evidence integrity using cryptographic hashes.
-9. Support digitally signed approvals and verification.
-10. Enable controlled collaboration between authorized departments.
-11. Provide AI-assisted retrieval without bypassing authorization.
-12. Support verifiable cross-organization integrity records.
-
----
-
-# 4. Solution
-
-CaseVault separates **application data**, **encrypted files**, **search indexes**, and **integrity proofs**.
-
-```text
-                         CASEVAULT
-                             │
-             ┌───────────────┼────────────────┐
-             │               │                │
-        Application       Secure Files     Integrity
-           Data             Storage          Layer
-             │               │                │
-       PostgreSQL        MinIO / S3      Hash Chain
-             │               │           Merkle Tree
-             │               │          Digital Signature
-             │               │         Hyperledger Fabric
-             │
-        Search / AI
-             │
-       OpenSearch
-             │
-       OCR + RAG + LLM
+```bash
+cd backend
+npm install
+npm start
 ```
 
-This separation provides:
+Frontend:
 
-- Better security
-- Better scalability
-- Independent storage optimization
-- Search performance
-- Cryptographic verification
-- Controlled AI access
-
----
-
-# 5. Key Features
-
-## 🔑 Authentication
-
-- Username/password authentication
-- Password hashing with Argon2id or bcrypt
-- JWT-based session authorization
-- Refresh-token rotation
-- TOTP MFA
-- Account lockout/rate limiting
-- Session/device management
-
-## 🛡️ Authorization
-
-- RBAC
-- ABAC
-- Case-level authorization
-- Department-level authorization
-- Document classification
-- Clearance-aware access
-- Step-up authentication for sensitive actions
-
-## 📁 Document Management
-
-- Upload
-- Download
-- Preview
-- Categorization
-- Tags
-- Versioning
-- Sharing
-- Approval
-- Rejection
-- Archiving
-- Restoration
-- Integrity verification
-
-## ⚖️ Case Management
-
-- Case creation
-- Case assignment
-- Case members
-- Case status
-- Case priority
-- Case timeline
-- Related documents
-- Related evidence
-- Related assets
-
-## 🧪 Evidence Management
-
-- Evidence registration
-- Evidence classification
-- Evidence hashing
-- Custodian management
-- Evidence transfer
-- Chain of custody
-- Integrity verification
-- Digital signatures
-- Evidence timeline
-
-## 🚔 Police Asset Management
-
-- Asset registration
-- Asset assignment
-- Asset transfer
-- Maintenance tracking
-- Warranty tracking
-- Location tracking
-- Condition tracking
-- Asset history
-- Retirement/disposal
-
-## 🔍 Search
-
-- Metadata search
-- Full-text search
-- OCR search
-- Filters
-- Case-aware search
-- Permission-aware search
-- Semantic search
-
-## 🤖 AI
-
-- Document summarization
-- Case summaries
-- Natural-language search
-- Evidence Q&A
-- RAG-based retrieval
-- Citation/reference to source documents
-- Authorization-aware retrieval
-
-## 🧾 Audit
-
-Every sensitive operation can generate an audit event:
-
-```text
-LOGIN
-MFA_SUCCESS
-CASE_CREATED
-DOCUMENT_UPLOADED
-DOCUMENT_VIEWED
-DOCUMENT_DOWNLOADED
-DOCUMENT_SHARED
-DOCUMENT_VERSION_CREATED
-DOCUMENT_APPROVED
-DOCUMENT_REJECTED
-EVIDENCE_REGISTERED
-EVIDENCE_TRANSFERRED
-ASSET_ASSIGNED
-ASSET_TRANSFERRED
-PERMISSION_CHANGED
-INTEGRITY_VERIFIED
-INTEGRITY_FAILED
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
----
+## Verification evidence
 
-# 6. Users and Roles
+The backend test suite passes with the cryptographic and integrity checks:
 
-| Role | Main Responsibilities |
-|---|---|
-| System Administrator | System configuration and user administration |
-| Investigating Officer | Cases, investigation documents, evidence |
-| Senior Officer | Review, approval, assignment, supervision |
-| Forensic Officer | Evidence examination and forensic reports |
-| Legal Officer | Legal documents, review, court preparation |
-| Auditor | Audit logs, integrity verification, compliance |
-| Asset Manager | Police asset lifecycle |
-| Department Manager | Department-level oversight |
-| Court/Authorized External User | Restricted authorized access |
-
-Roles should not be the only authorization mechanism.
-
-CaseVault combines:
-
-```text
-Identity
-   +
-Role
-   +
-Department
-   +
-Case Membership
-   +
-Document Classification
-   +
-Clearance
-   +
-Action
-   +
-Context
+```bash
+cd backend
+npm test -- --test-reporter=spec
 ```
 
----
+Result: 5 tests passed, 0 failed.
 
-# 7. Complete Module Architecture
-
-```text
-CaseVault
-│
-├── 01 Authentication & Identity
-│   ├── Login
-│   ├── MFA
-│   ├── JWT
-│   ├── Session Management
-│   └── User Management
-│
-├── 02 Case Management
-│   ├── Case Creation
-│   ├── Case Assignment
-│   ├── Case Members
-│   ├── Case Timeline
-│   └── Case Closure
-│
-├── 03 Document Management
-│   ├── Upload
-│   ├── Versioning
-│   ├── Classification
-│   ├── Sharing
-│   ├── Approval
-│   └── Archival
-│
-├── 04 Evidence Management
-│   ├── Registration
-│   ├── Collection
-│   ├── Custody
-│   ├── Transfer
-│   ├── Examination
-│   └── Verification
-│
-├── 05 Police Asset Management
-│   ├── Registration
-│   ├── Assignment
-│   ├── Transfer
-│   ├── Maintenance
-│   ├── History
-│   └── Disposal
-│
-├── 06 Audit & Integrity
-│   ├── Audit Logs
-│   ├── Hash Chain
-│   ├── Merkle Tree
-│   ├── Signatures
-│   └── Verification
-│
-├── 07 Search
-│   ├── Metadata Search
-│   ├── Full Text
-│   ├── OCR
-│   └── Semantic Search
-│
-├── 08 AI Assistant
-│   ├── RAG
-│   ├── Summaries
-│   ├── Case Q&A
-│   └── Evidence Q&A
-│
-├── 09 Notifications
-│   ├── Workflow Alerts
-│   ├── Assignment Alerts
-│   ├── Maintenance Alerts
-│   └── Security Alerts
-│
-└── 10 Administration
-    ├── Departments
-    ├── Roles
-    ├── Permissions
-    ├── Policies
-    └── System Configuration
-```
-
----
-
-# 8. Case Lifecycle
-
-```text
-                    ┌─────────────┐
-                    │    CREATED  │
-                    └──────┬──────┘
-                           ↓
-                 ┌──────────────────┐
-                 │ UNDER INVESTIGATION│
-                 └────────┬─────────┘
-                          ↓
-                 ┌──────────────────┐
-                 │ EVIDENCE COLLECTION│
-                 └────────┬─────────┘
-                          ↓
-                 ┌──────────────────┐
-                 │ INVESTIGATION REVIEW│
-                 └────────┬─────────┘
-                          ↓
-                    ┌────────────┐
-                    │LEGAL REVIEW│
-                    └─────┬──────┘
-                          ↓
-                    ┌──────────┐
-                    │  CLOSED  │
-                    └────┬─────┘
-                         ↓
-                    ┌──────────┐
-                    │ ARCHIVED │
-                    └──────────┘
-```
-
-A case should never be physically deleted by a normal user.
-
-Use controlled lifecycle states and retention policies.
-
----
-
-# 9. Document Lifecycle
-
-```text
-Upload
-  ↓
-Hash
-  ↓
-Encrypt
-  ↓
-Store
-  ↓
-Index
-  ↓
-Review
-  ↓
-Approve / Reject
-  ↓
-Version
-  ↓
-Archive
-```
-
-### Document classification
-
-```text
-PUBLIC
-INTERNAL
-CONFIDENTIAL
-RESTRICTED
-HIGHLY_RESTRICTED
-```
-
-Classification affects:
-
-- Who can access the document
-- Whether MFA is required
-- Whether downloading is permitted
-- Whether external sharing is allowed
-- Retention policy
-- Approval requirements
-- Audit severity
-
-### Versioning Rule
-
-Never overwrite an existing approved document.
-
-```text
-Document
- ├── Version 1
- ├── Version 2
- ├── Version 3
- └── Version 4 (Current)
-```
-
-Each version stores its own:
-
-- Hash
-- Encryption metadata
-- Created-by
-- Created-at
-- Version number
-- Approval state
-- Digital signature metadata
-
----
-
-# 10. Evidence and Chain of Custody
-
-Evidence is treated as a high-integrity entity.
-
-### Evidence Metadata
-
-```text
-Evidence ID
-Case ID
-Evidence Type
-Description
-Collected By
-Collection Date
-Collection Location
-Current Custodian
-Storage Location
-Status
-Integrity Hash
-Classification
-Created At
-Updated At
-```
-
-### Evidence Lifecycle
-
-```text
-COLLECTED
-    ↓
-REGISTERED
-    ↓
-VERIFIED
-    ↓
 STORED
     ↓
 TRANSFERRED
