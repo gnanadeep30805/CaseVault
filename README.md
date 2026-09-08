@@ -18,11 +18,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Language-JavaScript%20Only-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript Only"/>
   <img src="https://img.shields.io/badge/Auth-JWT%20%2B%20MFA-7C3AED?style=for-the-badge" alt="JWT MFA"/>
   <img src="https://img.shields.io/badge/Search-OpenSearch-005EB8?style=for-the-badge" alt="OpenSearch"/>
   <img src="https://img.shields.io/badge/Blockchain-Hyperledger%20Fabric-2F3134?style=for-the-badge" alt="Hyperledger Fabric"/>
-  <img src="https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge" alt="License"/>
 </p>
 </div>
 
