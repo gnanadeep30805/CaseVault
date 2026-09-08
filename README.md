@@ -1,3 +1,5 @@
+<div align="center">
+  
 # 🔐 CaseVault
 
 ### Secure Digital Case, Evidence & Police Asset Lifecycle Management System
@@ -22,7 +24,7 @@
   <img src="https://img.shields.io/badge/Blockchain-Hyperledger%20Fabric-2F3134?style=for-the-badge" alt="Hyperledger Fabric"/>
   <img src="https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge" alt="License"/>
 </p>
-
+</div>
 ---
 
 # 1. Project Overview
