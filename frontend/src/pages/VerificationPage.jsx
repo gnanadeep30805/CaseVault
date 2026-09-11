@@ -52,10 +52,11 @@ export default function VerificationPage() {
                     <div style={{ display: 'grid', gap: 10 }}>
                         <div><strong>Resource:</strong> {result.resource}</div>
                         <div><strong>Hash:</strong> {result.verified ? 'VALID' : 'MISMATCH'}</div>
-                        <div><strong>Digital Signature:</strong> VALID</div>
-                        <div><strong>Custody Chain:</strong> VALID</div>
-                        <div><strong>Audit Chain:</strong> VALID</div>
-                        <div><strong>Merkle Proof:</strong> VALID</div>
+                        <div><strong>Hash:</strong> {result.checks?.hash ? 'VALID' : 'MISMATCH'}</div>
+                        <div><strong>Digital Signature:</strong> {result.checks?.signature ? 'VALID' : 'NOT VERIFIED'}</div>
+                        <div><strong>Custody Chain:</strong> {result.checks?.custody ? 'VALID' : 'NOT VERIFIED'}</div>
+                        <div><strong>Audit Chain:</strong> {result.checks?.audit ? 'VALID' : 'NOT VERIFIED'}</div>
+                        <div><strong>Merkle Proof:</strong> {result.checks?.merkle ? 'VALID' : 'NOT VERIFIED'}</div>
                         <div><strong>Overall Status:</strong> {result.overallStatus}</div>
                     </div>
                 </div>

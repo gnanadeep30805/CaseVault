@@ -1,0 +1,25 @@
+test_id,category,scenario,expected
+EDGE-001,UPLOAD,0-byte file,Reject
+EDGE-002,UPLOAD,Unsupported MIME type,Reject
+EDGE-003,UPLOAD,Oversized file,Reject
+EDGE-004,AUTH,Wrong password,Deny and audit
+EDGE-005,AUTH,Expired JWT,401
+EDGE-006,AUTH,Suspended user U008 login,Deny
+EDGE-007,AUTH,Invalid MFA code,Deny and audit
+EDGE-008,AUTHZ,U007 uploads document,403
+EDGE-009,AUTHZ,Low-clearance user requests TOP_SECRET,403
+EDGE-010,DOCUMENT,Overwrite approved document,Require new version
+EDGE-011,EVIDENCE,Transfer to unauthorized user,Reject
+EDGE-012,EVIDENCE,Transfer archived evidence,Reject
+EDGE-013,INTEGRITY,Modify evidence bytes,Hash mismatch
+EDGE-014,INTEGRITY,Alter custody previous_hash,Chain failure
+EDGE-015,AUDIT,Delete audit event,Prevent/deny
+EDGE-016,SEARCH,Unauthorized matching document,Do not return
+EDGE-017,ASSET,Assign maintenance asset,Reject
+EDGE-018,ASSET,Retire active asset without workflow,Reject/confirm
+EDGE-019,API,Invalid ID format,400
+EDGE-020,SECURITY,SQL injection-like search,Safe response
+EDGE-021,SECURITY,Path traversal filename,Reject/sanitize
+EDGE-022,UI,Refresh nested route,Route resolves
+EDGE-023,UI,Theme switch then refresh,Preference persists
+EDGE-024,UI,Double-submit form,No duplicate

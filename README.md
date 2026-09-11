@@ -1,81 +1,54 @@
-# CaseVault
-
+CaseVault
 CaseVault is a working security-focused case, document, and evidence management application built on React + Express. The project keeps the existing UI theme and expands the current app with a real cryptographic and integrity layer for Half 2 development.
 
-## Current status
-
-### Implemented
-
-- JWT-based authentication flow with MFA check
-- Protected API routes and auth middleware
-- Case listing and creation endpoints
-- Security overview and event/alert endpoints
-- AES-256-GCM encryption helpers
-- SHA3-256 hashing helpers
-- HKDF-based key derivation using Node.js crypto
-- Merkle tree generation and verification
-- Audit and custody hash-chain validation
-- Zero-trust access-policy evaluation
-- Security dashboard and verification screen in the frontend
-- Documentation for architecture, security, cryptography, authorization, and evidence-chain flow
-
-### Not claimed as completed
-
+Current status
+Implemented
+JWT-based authentication flow with MFA check
+Protected API routes and auth middleware
+Case listing and creation endpoints
+Security overview and event/alert endpoints
+AES-256-GCM encryption helpers
+SHA3-256 hashing helpers
+HKDF-based key derivation using Node.js crypto
+Merkle tree generation and verification
+Audit and custody hash-chain validation
+Zero-trust access-policy evaluation
+Security dashboard and verification screen in the frontend
+Documentation for architecture, security, cryptography, authorization, and evidence-chain flow
+Not claimed as completed
 The following are intentionally documented as architecture or future enhancement work rather than implemented production services:
 
-- OpenSearch indexing
-- OCR processing pipeline
-- RabbitMQ workers
-- AI/RAG assistant with authorized retrieval
-- Hyperledger Fabric ledger anchoring
-- MinIO object lifecycle and production key management
-- Production monitoring and Grafana/Prometheus deployment
-
-## Development notes
-
-- The app keeps its existing visual system and does not replace the established design language.
-- Security verification is evaluated server-side.
-- The backend can be extended to PostgreSQL, MinIO, Redis, OpenSearch, and blockchain adapters without changing the application contract.
-
-## Local run
-
+OpenSearch indexing
+OCR processing pipeline
+RabbitMQ workers
+AI/RAG assistant with authorized retrieval
+Hyperledger Fabric ledger anchoring
+MinIO object lifecycle and production key management
+Production monitoring and Grafana/Prometheus deployment
+Development notes
+The app keeps its existing visual system and does not replace the established design language.
+Security verification is evaluated server-side.
+The backend can be extended to PostgreSQL, MinIO, Redis, OpenSearch, and blockchain adapters without changing the application contract.
+Local run
 Backend:
 
-```bash
 cd backend
 npm install
 npm start
-```
-
 Frontend:
 
-```bash
 cd frontend
 npm install
 npm run dev
-```
-
-## Verification evidence
-
+Verification evidence
 The backend test suite passes with the cryptographic and integrity checks:
 
-```bash
 cd backend
 npm test -- --test-reporter=spec
-```
-
 Result: 5 tests passed, 0 failed.
 
-STORED
-    ↓
-TRANSFERRED
-    ↓
-EXAMINED
-    ↓
-RETURNED / PRESENTED
-    ↓
-ARCHIVED
-```
+STORED ↓ TRANSFERRED ↓ EXAMINED ↓ RETURNED / PRESENTED ↓ ARCHIVED
+
 
 ### Chain of Custody
 
@@ -91,11 +64,8 @@ Lab Custodian
 Legal Officer
    ↓
 Court / Authorized Recipient
-```
-
 Each custody event contains:
 
-```text
 custody_id
 evidence_id
 from_user
@@ -106,31 +76,22 @@ timestamp
 previous_hash
 current_hash
 digital_signature
-```
-
 The application should reject unauthorized custody transitions.
 
----
-
-# 11. Police Asset Lifecycle
-
+11. Police Asset Lifecycle
 The system also monitors and manages police assets throughout their lifecycle.
 
-### Asset Categories
-
-- Vehicles
-- Weapons
-- Communication devices
-- Computers
-- Body cameras
-- CCTV equipment
-- Protective equipment
-- Forensic equipment
-- Office equipment
-
-### Asset Lifecycle
-
-```text
+Asset Categories
+Vehicles
+Weapons
+Communication devices
+Computers
+Body cameras
+CCTV equipment
+Protective equipment
+Forensic equipment
+Office equipment
+Asset Lifecycle
 PROCURED
    ↓
 REGISTERED
@@ -148,11 +109,7 @@ REASSIGNED
 RETIRED
    ↓
 DISPOSED
-```
-
-### Asset Information
-
-```text
+Asset Information
 Asset ID
 Asset Name
 Category
@@ -167,17 +124,11 @@ Status
 Warranty
 Last Maintenance
 Next Maintenance
-```
-
 Every assignment, transfer, maintenance operation, and retirement is recorded.
 
----
-
-# 12. Security Architecture
-
+12. Security Architecture
 CaseVault uses defense in depth.
 
-```text
                          SECURITY
                             │
         ┌───────────────────┼───────────────────┐
@@ -201,77 +152,64 @@ CaseVault uses defense in depth.
                    Digital Signatures
                             ↓
                  Permissioned Blockchain
-```
+Cryptographic Components
+Purpose	Technology
+File confidentiality	AES-256-GCM
+File integrity	SHA3-256
+Audit tamper evidence	Hash Chain
+Batch integrity	Merkle Tree
+Digital authenticity	ECDSA P-256/P-384 or RSA-3072
+Key derivation	HKDF-SHA-256
+Internal authentication	HMAC-SHA-256
+Transport security	TLS 1.3
+Key protection	KMS / HSM / Vault
+Strong authentication	TOTP MFA
+These are the security technologies, not the complete application technology stack.
 
-## Cryptographic Components
+13. Complete Technology Stack
+JavaScript-Only Policy
+No TypeScript is used anywhere in CaseVault.
 
-| Purpose | Technology |
-|---|---|
-| File confidentiality | AES-256-GCM |
-| File integrity | SHA3-256 |
-| Audit tamper evidence | Hash Chain |
-| Batch integrity | Merkle Tree |
-| Digital authenticity | ECDSA P-256/P-384 or RSA-3072 |
-| Key derivation | HKDF-SHA-256 |
-| Internal authentication | HMAC-SHA-256 |
-| Transport security | TLS 1.3 |
-| Key protection | KMS / HSM / Vault |
-| Strong authentication | TOTP MFA |
+All application source code uses JavaScript. There are no .ts or .tsx files in the project architecture.
 
-> These are the security technologies, not the complete application technology stack.
-
----
-
-# 13. Complete Technology Stack
-
-## JavaScript-Only Policy
-
-> **No TypeScript is used anywhere in CaseVault.**
-
-All application source code uses JavaScript. There are no `.ts` or `.tsx` files in the project architecture.
-
-| Layer | Technology |
-|---|---|
-| Frontend | React.js + JavaScript |
-| Build Tool | Vite |
-| UI | Tailwind CSS |
-| State Management | Redux Toolkit |
-| Routing | React Router |
-| HTTP Client | Axios |
-| Backend | Node.js + Express.js |
-| API | REST API |
-| Database | PostgreSQL |
-| ORM | Prisma ORM or Sequelize |
-| Object Storage | MinIO / AWS S3 |
-| Cache | Redis |
-| Search | OpenSearch |
-| OCR | Tesseract OCR |
-| Authentication | JWT + TOTP MFA |
-| Password Security | Argon2id / bcrypt |
-| Authorization | RBAC + ABAC + Zero Trust |
-| Encryption | AES-256-GCM |
-| Hashing | SHA3-256 |
-| Key Derivation | HKDF-SHA-256 |
-| Internal Authentication | HMAC-SHA-256 |
-| Signatures | ECDSA / RSA |
-| Integrity | Hash Chain + Merkle Tree |
-| Ledger | Hyperledger Fabric |
-| Ordering | Raft |
-| Key Management | HashiCorp Vault / Cloud KMS / HSM |
-| AI | Google Gemini API / compatible LLM |
-| RAG | LangChain.js |
-| Vector Search | pgvector / OpenSearch |
-| Messaging | RabbitMQ |
-| Containers | Docker |
-| Orchestration | Docker Compose / Kubernetes |
-| Reverse Proxy | Nginx |
-| Monitoring | Prometheus + Grafana |
-| Logging | OpenSearch / ELK-compatible stack |
-| CI/CD | GitHub Actions |
-
-### SIH Prototype Stack
-
-```text
+Layer	Technology
+Frontend	React.js + JavaScript
+Build Tool	Vite
+UI	Tailwind CSS
+State Management	Redux Toolkit
+Routing	React Router
+HTTP Client	Axios
+Backend	Node.js + Express.js
+API	REST API
+Database	PostgreSQL
+ORM	Prisma ORM or Sequelize
+Object Storage	MinIO / AWS S3
+Cache	Redis
+Search	OpenSearch
+OCR	Tesseract OCR
+Authentication	JWT + TOTP MFA
+Password Security	Argon2id / bcrypt
+Authorization	RBAC + ABAC + Zero Trust
+Encryption	AES-256-GCM
+Hashing	SHA3-256
+Key Derivation	HKDF-SHA-256
+Internal Authentication	HMAC-SHA-256
+Signatures	ECDSA / RSA
+Integrity	Hash Chain + Merkle Tree
+Ledger	Hyperledger Fabric
+Ordering	Raft
+Key Management	HashiCorp Vault / Cloud KMS / HSM
+AI	Google Gemini API / compatible LLM
+RAG	LangChain.js
+Vector Search	pgvector / OpenSearch
+Messaging	RabbitMQ
+Containers	Docker
+Orchestration	Docker Compose / Kubernetes
+Reverse Proxy	Nginx
+Monitoring	Prometheus + Grafana
+Logging	OpenSearch / ELK-compatible stack
+CI/CD	GitHub Actions
+SIH Prototype Stack
 React + JavaScript
         ↓
 Node.js + Express.js
@@ -291,13 +229,7 @@ Hash Chain + Merkle Tree
 Optional Hyperledger Fabric
         ↓
 Optional OCR + Search + AI/RAG
-```
-
----
-
-# 14. System Architecture
-
-```text
+14. System Architecture
 ┌──────────────────────────────────────────────────────────────┐
 │                         USERS                                │
 │ Officers │ Forensic │ Legal │ Auditor │ Asset Manager       │
@@ -349,13 +281,7 @@ Optional OCR + Search + AI/RAG
 │                 Hyperledger Fabric                           │
 │       Police │ Forensic │ Legal │ Court/Authorized Org      │
 └──────────────────────────────────────────────────────────────┘
-```
-
----
-
-# 15. End-to-End Data Flow
-
-```text
+15. End-to-End Data Flow
 User
  ↓
 Login
@@ -391,15 +317,9 @@ Optional Merkle Root
 Optional Blockchain Anchor
  ↓
 Response
-```
-
 No sensitive operation should bypass authorization or audit processing.
 
----
-
-# 16. Document Upload and Protection Flow
-
-```text
+16. Document Upload and Protection Flow
 User selects file
         ↓
 React multipart upload
@@ -439,13 +359,9 @@ Update hash chain
 Create Merkle root when batching
         ↓
 Optional blockchain proof
-```
-
-### Encryption Model
-
+Encryption Model
 Use envelope encryption:
 
-```text
                  KMS / Vault / HSM
                         │
                      Master Key
@@ -461,15 +377,9 @@ Use envelope encryption:
                         │
                         ↓
                  Encrypted File
-```
-
 The plaintext document encryption key must not be stored directly in application source code or plaintext database fields.
 
----
-
-# 17. Evidence Transfer Flow
-
-```text
+17. Evidence Transfer Flow
 Officer A
    │
    │ Request Transfer
@@ -504,15 +414,9 @@ Optional Blockchain Anchor
    │
    ↓
 Recipient accepts custody
-```
-
----
-
-# 18. Document Integrity Verification
-
+18. Document Integrity Verification
 The system supports a visible verification workflow.
 
-```text
 Current File
     ↓
 SHA3-256
@@ -528,11 +432,7 @@ Verify Digital Signature
 Verify Custody / Audit Chain
     ↓
 RESULT
-```
-
-### Verified
-
-```text
+Verified
 ┌────────────────────────────────────┐
 │       ✓ INTEGRITY VERIFIED        │
 │                                    │
@@ -541,11 +441,7 @@ RESULT
 │ Audit Chain: VALID                 │
 │ Ledger Proof: VALID                │
 └────────────────────────────────────┘
-```
-
-### Tampered
-
-```text
+Tampered
 ┌────────────────────────────────────┐
 │       ✕ INTEGRITY FAILED          │
 │                                    │
@@ -553,19 +449,12 @@ RESULT
 │ Signature: INVALID                 │
 │ Ledger Proof: MISMATCH             │
 └────────────────────────────────────┘
-```
-
 This is one of the strongest SIH demonstration features.
 
----
+19. Blockchain Architecture
+Blockchain is used selectively for cross-organization integrity and provenance, not as the main database or file store.
 
-# 19. Blockchain Architecture
-
-Blockchain is used selectively for **cross-organization integrity and provenance**, not as the main database or file store.
-
-### Permissioned Organizations
-
-```text
+Permissioned Organizations
              Hyperledger Fabric
                      │
        ┌─────────────┼─────────────┐
@@ -575,17 +464,12 @@ Blockchain is used selectively for **cross-organization integrity and provenance
        └─────────────┼─────────────┘
                      ↓
               Court / Auditor
-```
-
-### Consensus
-
+Consensus
 For a trusted permissioned consortium, Hyperledger Fabric's Raft-based ordering is an appropriate prototype choice.
 
 PBFT-style Byzantine fault-tolerant approaches can be considered for environments with stronger adversarial assumptions.
 
-### Store on Blockchain
-
-```text
+Store on Blockchain
 document_id
 case_id
 evidence_id
@@ -596,11 +480,7 @@ actor_id
 action
 signature
 previous_proof_hash
-```
-
-### Never Store on Blockchain
-
-```text
+Never Store on Blockchain
 PDF files
 Images
 Videos
@@ -610,19 +490,12 @@ Large evidence files
 Full document contents
 Passwords
 Encryption keys
-```
-
 Actual files remain in encrypted object storage.
 
----
-
-# 20. AI and RAG Architecture
-
+20. AI and RAG Architecture
 AI must never become an authorization bypass.
 
-### Secure AI Pipeline
-
-```text
+Secure AI Pipeline
 User
  ↓
 Authentication
@@ -644,11 +517,7 @@ Context Filtering
 LLM
  ↓
 Answer + Source References
-```
-
-### Document Ingestion
-
-```text
+Document Ingestion
 Document
  ↓
 Decrypt only inside authorized processing boundary
@@ -662,45 +531,32 @@ Chunking
 Embedding
  ↓
 Vector Index
-```
+AI Capabilities
+Case summarization
+Document summarization
+Natural-language search
+Evidence Q&A
+Investigation timeline generation
+Related-document discovery
+The AI layer receives only documents the authenticated user is already authorized to access.
 
-### AI Capabilities
-
-- Case summarization
-- Document summarization
-- Natural-language search
-- Evidence Q&A
-- Investigation timeline generation
-- Related-document discovery
-
-> The AI layer receives only documents the authenticated user is already authorized to access.
-
----
-
-# 21. Authorization Architecture
-
-## RBAC
-
+21. Authorization Architecture
+RBAC
 Example roles:
 
-```text
 INVESTIGATING_OFFICER
 FORENSIC_OFFICER
 LEGAL_OFFICER
 AUDITOR
 ADMIN
 ASSET_MANAGER
-```
-
 RBAC answers:
 
-> What can this role generally do?
+What can this role generally do?
 
-## ABAC
-
+ABAC
 Attributes can include:
 
-```text
 user.department
 user.clearanceLevel
 case.department
@@ -711,15 +567,11 @@ location
 time
 deviceTrust
 mfaLevel
-```
-
 ABAC answers:
 
-> Is this user allowed to perform this action in this context?
+Is this user allowed to perform this action in this context?
 
-### Example Policy
-
-```text
+Example Policy
 ALLOW DOWNLOAD
 IF
 user.role = INVESTIGATING_OFFICER
@@ -727,26 +579,16 @@ AND user.department = case.department
 AND user is case member
 AND document.classification <= user.clearance
 AND MFA is satisfied
-```
-
-### Zero Trust
-
+Zero Trust
 Every sensitive request is independently evaluated.
 
-```text
 Never trust
 Always verify
 Least privilege
 Continuous evaluation
-```
+22. Database Architecture
+PostgreSQL stores metadata and relationships, not large binary files.
 
----
-
-# 22. Database Architecture
-
-PostgreSQL stores **metadata and relationships**, not large binary files.
-
-```text
                     PostgreSQL
                          │
        ┌─────────────────┼──────────────────┐
@@ -767,11 +609,7 @@ PostgreSQL stores **metadata and relationships**, not large binary files.
                          │
                          ↓
                      Audit Logs
-```
-
-### Object Storage
-
-```text
+Object Storage
 PostgreSQL
     │
     └── object_key
@@ -780,15 +618,8 @@ PostgreSQL
        MinIO / S3
             │
        encrypted file
-```
-
----
-
-# 23. Database Schema
-
-## users
-
-```text
+23. Database Schema
+users
 id
 employee_id
 name
@@ -801,43 +632,23 @@ mfa_enabled
 status
 created_at
 updated_at
-```
-
-## roles
-
-```text
+roles
 id
 name
 description
-```
-
-## permissions
-
-```text
+permissions
 id
 name
 description
-```
-
-## role_permissions
-
-```text
+role_permissions
 role_id
 permission_id
-```
-
-## departments
-
-```text
+departments
 id
 name
 code
 description
-```
-
-## cases
-
-```text
+cases
 id
 case_number
 title
@@ -852,21 +663,13 @@ assigned_officer
 created_at
 updated_at
 closed_at
-```
-
-## case_members
-
-```text
+case_members
 id
 case_id
 user_id
 role
 joined_at
-```
-
-## documents
-
-```text
+documents
 id
 case_id
 document_number
@@ -882,11 +685,7 @@ status
 created_by
 created_at
 updated_at
-```
-
-## document_versions
-
-```text
+document_versions
 id
 document_id
 version_number
@@ -900,22 +699,14 @@ created_at
 approved_by
 approved_at
 status
-```
-
-## document_permissions
-
-```text
+document_permissions
 id
 document_id
 user_id
 permission
 expires_at
 created_by
-```
-
-## evidence
-
-```text
+evidence
 id
 evidence_number
 case_id
@@ -931,11 +722,7 @@ status
 integrity_hash
 created_at
 updated_at
-```
-
-## evidence_custody
-
-```text
+evidence_custody
 id
 evidence_id
 from_user
@@ -947,11 +734,7 @@ previous_hash
 current_hash
 digital_signature
 timestamp
-```
-
-## assets
-
-```text
+assets
 id
 asset_number
 name
@@ -968,11 +751,7 @@ last_maintenance
 next_maintenance
 created_at
 updated_at
-```
-
-## asset_assignments
-
-```text
+asset_assignments
 id
 asset_id
 assigned_to
@@ -981,11 +760,7 @@ assigned_at
 returned_at
 location
 reason
-```
-
-## asset_maintenance
-
-```text
+asset_maintenance
 id
 asset_id
 maintenance_type
@@ -995,11 +770,7 @@ cost
 performed_at
 next_due
 status
-```
-
-## asset_history
-
-```text
+asset_history
 id
 asset_id
 action
@@ -1007,11 +778,7 @@ actor_id
 old_value
 new_value
 timestamp
-```
-
-## audit_logs
-
-```text
+audit_logs
 id
 actor_id
 action
@@ -1023,11 +790,7 @@ metadata
 previous_hash
 event_hash
 created_at
-```
-
-## notifications
-
-```text
+notifications
 id
 user_id
 type
@@ -1036,57 +799,33 @@ message
 severity
 is_read
 created_at
-```
-
----
-
-# 24. API Architecture
-
+24. API Architecture
 All APIs use:
 
-```text
 /api/v1/*
-```
-
 Example:
 
-```text
 /api/v1/auth/login
 /api/v1/cases
 /api/v1/documents
 /api/v1/evidence
 /api/v1/assets
-```
-
-### Standard Response
-
-```json
+Standard Response
 {
   "success": true,
   "message": "Document uploaded successfully",
   "data": {},
   "requestId": "..."
 }
-```
-
-### Standard Error
-
-```json
+Standard Error
 {
   "success": false,
   "message": "Access denied",
   "code": "FORBIDDEN",
   "requestId": "..."
 }
-```
-
----
-
-# 25. API Endpoints
-
-## Authentication
-
-```text
+25. API Endpoints
+Authentication
 POST   /api/v1/auth/register
 POST   /api/v1/auth/login
 POST   /api/v1/auth/verify-mfa
@@ -1095,21 +834,13 @@ POST   /api/v1/auth/logout
 POST   /api/v1/auth/mfa/setup
 POST   /api/v1/auth/mfa/verify
 GET    /api/v1/auth/me
-```
-
-## Users
-
-```text
+Users
 GET    /api/v1/users
 GET    /api/v1/users/:id
 POST   /api/v1/users
 PUT    /api/v1/users/:id
 PATCH  /api/v1/users/:id/status
-```
-
-## Cases
-
-```text
+Cases
 GET    /api/v1/cases
 POST   /api/v1/cases
 GET    /api/v1/cases/:id
@@ -1118,11 +849,7 @@ PATCH  /api/v1/cases/:id/status
 POST   /api/v1/cases/:id/members
 DELETE /api/v1/cases/:id/members/:userId
 GET    /api/v1/cases/:id/timeline
-```
-
-## Documents
-
-```text
+Documents
 GET    /api/v1/documents
 POST   /api/v1/documents/upload
 GET    /api/v1/documents/:id
@@ -1134,11 +861,7 @@ POST   /api/v1/documents/:id/approve
 POST   /api/v1/documents/:id/reject
 POST   /api/v1/documents/:id/archive
 POST   /api/v1/documents/:id/verify
-```
-
-## Evidence
-
-```text
+Evidence
 GET    /api/v1/evidence
 POST   /api/v1/evidence
 GET    /api/v1/evidence/:id
@@ -1146,11 +869,7 @@ PUT    /api/v1/evidence/:id
 POST   /api/v1/evidence/:id/transfer
 GET    /api/v1/evidence/:id/custody
 POST   /api/v1/evidence/:id/verify
-```
-
-## Assets
-
-```text
+Assets
 GET    /api/v1/assets
 POST   /api/v1/assets
 GET    /api/v1/assets/:id
@@ -1160,41 +879,23 @@ POST   /api/v1/assets/:id/return
 POST   /api/v1/assets/:id/maintenance
 GET    /api/v1/assets/:id/history
 PATCH  /api/v1/assets/:id/status
-```
-
-## Audit
-
-```text
+Audit
 GET    /api/v1/audit
 GET    /api/v1/audit/:id
 GET    /api/v1/audit/resource/:resourceType/:resourceId
 POST   /api/v1/audit/verify-chain
-```
-
-## Search
-
-```text
+Search
 GET /api/v1/search
 GET /api/v1/search/documents
 GET /api/v1/search/evidence
 GET /api/v1/search/cases
-```
-
-## AI
-
-```text
+AI
 POST /api/v1/ai/query
 POST /api/v1/ai/summarize/case/:id
 POST /api/v1/ai/summarize/document/:id
-```
-
----
-
-# 26. Backend Architecture
-
+26. Backend Architecture
 Backend technology:
 
-```text
 Node.js
 Express.js
 JavaScript
@@ -1204,11 +905,7 @@ Redis
 MinIO SDK
 JWT
 Argon2id / bcrypt
-```
-
-### Backend Layers
-
-```text
+Backend Layers
 HTTP Request
      ↓
 Routes
@@ -1228,17 +925,11 @@ Services
 Repositories / ORM
      ↓
 Database / Storage
-```
-
 Business logic belongs in services, while controllers remain thin and focused on HTTP concerns.
 
----
-
-# 27. Frontend Architecture
-
+27. Frontend Architecture
 Frontend:
 
-```text
 React.js
 JavaScript
 Vite
@@ -1247,11 +938,7 @@ Redux Toolkit
 React Router
 Axios
 Recharts
-```
-
-### Main Screens
-
-```text
+Main Screens
 Login
 MFA Verification
 Dashboard
@@ -1270,13 +957,9 @@ AI Assistant
 Notifications
 User Management
 Settings
-```
-
-### Dashboard
-
+Dashboard
 Show:
 
-```text
 Active Cases
 Pending Reviews
 Evidence Items
@@ -1286,13 +969,7 @@ Integrity Alerts
 Assets
 Maintenance Due
 Security Alerts
-```
-
----
-
-# 28. Repository Structure
-
-```text
+28. Repository Structure
 casevault/
 │
 ├── README.md
@@ -1404,31 +1081,22 @@ casevault/
     ├── integration/
     ├── security/
     └── e2e/
-```
+All application source files use .js or .jsx. No .ts or .tsx files are permitted.
 
-> All application source files use `.js` or `.jsx`. No `.ts` or `.tsx` files are permitted.
+29. UI/UX Design System
+CaseVault should visually communicate trust, security, authority, and clarity.
 
----
-
-# 29. UI/UX Design System
-
-CaseVault should visually communicate **trust, security, authority, and clarity**.
-
-### Design Direction
-
-- Professional
-- Minimal
-- Enterprise
-- Security-focused
-- Information-dense but readable
-- Responsive
-- Accessible
-
-### Recommended Theme
-
+Design Direction
+Professional
+Minimal
+Enterprise
+Security-focused
+Information-dense but readable
+Responsive
+Accessible
+Recommended Theme
 Use a restrained dark/light enterprise interface.
 
-```text
 Primary:
 Deep Navy / Slate
 
@@ -1446,13 +1114,9 @@ Red
 
 Neutral:
 Slate / Gray
-```
-
 Avoid excessive gradients and unnecessary decorative elements.
 
-### Layout
-
-```text
+Layout
 ┌──────────────────────────────────────────────────────────┐
 │ Top Bar: Search | Notifications | Profile                │
 ├──────────────┬───────────────────────────────────────────┤
@@ -1469,71 +1133,47 @@ Avoid excessive gradients and unnecessary decorative elements.
 │ AI Assistant │                                           │
 │ Settings     │                                           │
 └──────────────┴───────────────────────────────────────────┘
-```
-
-### Security Indicators
-
+Security Indicators
 Every sensitive object should visibly show:
 
-```text
 Classification
 Access Status
 Integrity Status
 Last Modified
 Last Verified
-```
-
----
-
-# 30. Notifications
-
+30. Notifications
 Notification categories:
 
-### Case
-
-- New case assignment
-- Case status change
-- Review required
-- Case approaching deadline
-
-### Evidence
-
-- Evidence transfer request
-- Custody acceptance
-- Custody rejection
-- Integrity failure
-
-### Documents
-
-- Document shared
-- Approval requested
-- Document approved
-- Document rejected
-
-### Assets
-
-- Maintenance due
-- Warranty expiry
-- Asset assigned
-- Asset transfer
-
-### Security
-
-- Failed login
-- MFA failure
-- Suspicious activity
-- Unauthorized access attempt
-- Integrity verification failure
-
----
-
-# 31. Audit and Compliance
-
+Case
+New case assignment
+Case status change
+Review required
+Case approaching deadline
+Evidence
+Evidence transfer request
+Custody acceptance
+Custody rejection
+Integrity failure
+Documents
+Document shared
+Approval requested
+Document approved
+Document rejected
+Assets
+Maintenance due
+Warranty expiry
+Asset assigned
+Asset transfer
+Security
+Failed login
+MFA failure
+Suspicious activity
+Unauthorized access attempt
+Integrity verification failure
+31. Audit and Compliance
 Audit logging is a first-class subsystem.
 
-### Audit Record
-
-```text
+Audit Record
 Actor
 Action
 Resource
@@ -1545,11 +1185,7 @@ Request ID
 Metadata
 Previous Event Hash
 Current Event Hash
-```
-
-### Hash-Chain Design
-
-```text
+Hash-Chain Design
 Event 1
 Hash(E1)
    ↓
@@ -1561,87 +1197,67 @@ Hash(E3)
    ↓
 Event 4 + Hash(E3)
 Hash(E4)
-```
-
 If an old audit event is modified, subsequent verification can detect the break.
 
-### Audit Requirements
-
+Audit Requirements
 Audit:
 
-- Authentication
-- Authorization failures
-- Document access
-- Downloads
-- Sharing
-- Version creation
-- Approvals
-- Evidence transfers
-- Asset assignments
-- Permission changes
-- Integrity verification
-- Administrative changes
-
----
-
-# 32. Threat Model
-
-| Threat | Protection |
-|---|---|
-| Stolen password | MFA |
-| Brute-force login | Rate limiting + lockout |
-| Unauthorized API access | JWT + authorization |
-| Privilege escalation | RBAC + ABAC |
-| Stolen database | Encrypted sensitive fields + hashes |
-| Stolen files | AES-256-GCM |
-| File modification | SHA3-256 |
-| Audit manipulation | Hash chain |
-| Batch tampering | Merkle tree |
-| Forged approval | Digital signature |
-| Cross-org dispute | Permissioned ledger proof |
-| Session theft | Short-lived access token + rotation |
-| Malicious upload | MIME validation + size limits + malware scanning |
-| SQL injection | Parameterized queries / ORM |
-| XSS | Output encoding + CSP |
-| CSRF | SameSite cookies / CSRF controls where applicable |
-| API abuse | Rate limiting |
-| Insider misuse | Least privilege + audit |
-| AI data leakage | Authorization-filtered RAG |
-| Key compromise | KMS/HSM/Vault |
-| Network interception | TLS 1.3 |
-
----
-
-# 33. Performance and Scalability
-
-### Storage Scalability
-
+Authentication
+Authorization failures
+Document access
+Downloads
+Sharing
+Version creation
+Approvals
+Evidence transfers
+Asset assignments
+Permission changes
+Integrity verification
+Administrative changes
+32. Threat Model
+Threat	Protection
+Stolen password	MFA
+Brute-force login	Rate limiting + lockout
+Unauthorized API access	JWT + authorization
+Privilege escalation	RBAC + ABAC
+Stolen database	Encrypted sensitive fields + hashes
+Stolen files	AES-256-GCM
+File modification	SHA3-256
+Audit manipulation	Hash chain
+Batch tampering	Merkle tree
+Forged approval	Digital signature
+Cross-org dispute	Permissioned ledger proof
+Session theft	Short-lived access token + rotation
+Malicious upload	MIME validation + size limits + malware scanning
+SQL injection	Parameterized queries / ORM
+XSS	Output encoding + CSP
+CSRF	SameSite cookies / CSRF controls where applicable
+API abuse	Rate limiting
+Insider misuse	Least privilege + audit
+AI data leakage	Authorization-filtered RAG
+Key compromise	KMS/HSM/Vault
+Network interception	TLS 1.3
+33. Performance and Scalability
+Storage Scalability
 Use object storage for large files.
 
-```text
 PostgreSQL → metadata
 MinIO/S3 → files
-```
-
 This prevents database bloat.
 
-### Caching
-
+Caching
 Redis can cache:
 
-- User permissions
-- Frequently accessed case metadata
-- Dashboard metrics
-- Session information
-- Rate-limit counters
-
+User permissions
+Frequently accessed case metadata
+Dashboard metrics
+Session information
+Rate-limit counters
 Never cache sensitive data without a clear security policy.
 
-### Asynchronous Processing
-
+Asynchronous Processing
 Use RabbitMQ for:
 
-```text
 Document OCR
 Search indexing
 Embedding generation
@@ -1649,11 +1265,7 @@ Notifications
 Audit anchoring
 Large file processing
 AI ingestion
-```
-
-### Horizontal Scaling
-
-```text
+Horizontal Scaling
                   Load Balancer
                        │
           ┌────────────┼────────────┐
@@ -1665,17 +1277,10 @@ AI ingestion
                   PostgreSQL
                        │
                   MinIO / S3
-```
-
 The Express API should remain stateless wherever practical.
 
----
-
-# 34. Deployment Architecture
-
-## Development
-
-```text
+34. Deployment Architecture
+Development
 Developer Machine
       │
       └── Docker Compose
@@ -1685,11 +1290,7 @@ Developer Machine
             ├── Redis
             ├── MinIO
             └── OpenSearch
-```
-
-## Production Target
-
-```text
+Production Target
                     Internet / Private Network
                               │
                            WAF/LB
@@ -1711,15 +1312,9 @@ Developer Machine
                     Security Services
                            │
                     Hyperledger Fabric
-```
+35. Environment Configuration
+Use .env.example.
 
----
-
-# 35. Environment Configuration
-
-Use `.env.example`.
-
-```env
 NODE_ENV=development
 PORT=5000
 
@@ -1747,11 +1342,7 @@ GEMINI_API_KEY=change_me
 
 VAULT_ADDR=http://vault:8200
 VAULT_TOKEN=change_me
-```
-
-### Never Commit
-
-```text
+Never Commit
 .env
 private keys
 JWT secrets
@@ -1760,82 +1351,42 @@ Vault tokens
 API keys
 production certificates
 user passwords
-```
-
----
-
-# 36. Local Development
-
-## Prerequisites
-
+36. Local Development
+Prerequisites
 Install:
 
-```text
 Node.js LTS
 npm
 Docker
 Docker Compose
 Git
-```
-
 Optional:
 
-```text
 VS Code
 Postman / Bruno
 DBeaver
-```
-
-## Clone
-
-```bash
+Clone
 git clone https://github.com/gnanadeep30805/CaseVault.git
 cd CaseVault
-```
-
-## Install Frontend
-
-```bash
+Install Frontend
 cd frontend
 npm install
 npm run dev
-```
-
-## Install Backend
-
-```bash
+Install Backend
 cd backend
 npm install
 npm run dev
-```
-
-## Start Infrastructure
-
+Start Infrastructure
 From the root:
 
-```bash
 docker compose up -d
-```
-
-## Stop Infrastructure
-
-```bash
+Stop Infrastructure
 docker compose down
-```
-
-## Production Build
-
-```bash
+Production Build
 npm run build
-```
-
----
-
-# 37. Docker Architecture
-
+37. Docker Architecture
 Example services:
 
-```yaml
 services:
 
   frontend:
@@ -1861,80 +1412,59 @@ services:
 
   nginx:
     image: nginx
-```
-
 For the SIH prototype, start with:
 
-```text
 frontend
 backend
 postgres
 minio
 redis
-```
-
 Then add:
 
-```text
 opensearch
 rabbitmq
 fabric
-```
-
 only when the corresponding feature is implemented.
 
----
-
-# 38. Testing Strategy
-
-## Unit Testing
-
+38. Testing Strategy
+Unit Testing
 Test:
 
-- AES encryption/decryption
-- SHA3 hashing
-- HKDF
-- Hash chain
-- Merkle tree
-- Authorization policies
-- Case state transitions
-- Evidence state transitions
-- Asset state transitions
-
-## Integration Testing
-
+AES encryption/decryption
+SHA3 hashing
+HKDF
+Hash chain
+Merkle tree
+Authorization policies
+Case state transitions
+Evidence state transitions
+Asset state transitions
+Integration Testing
 Test:
 
-```text
 API → Service → PostgreSQL
 API → MinIO
 API → Redis
 API → Search
 API → Blockchain
-```
-
-## Security Testing
-
+Security Testing
 Test:
 
-- Invalid JWT
-- Expired JWT
-- Invalid MFA
-- Unauthorized role
-- Unauthorized case access
-- Unauthorized document download
-- Path traversal
-- Malicious file upload
-- SQL injection
-- XSS
-- Rate-limit behavior
-- Permission escalation
-
-## E2E Testing
-
+Invalid JWT
+Expired JWT
+Invalid MFA
+Unauthorized role
+Unauthorized case access
+Unauthorized document download
+Path traversal
+Malicious file upload
+SQL injection
+XSS
+Rate-limit behavior
+Permission escalation
+E2E Testing
 Example:
 
-```text
 Login
  ↓
 MFA
@@ -1956,15 +1486,9 @@ Transfer Evidence
 Verify Integrity
  ↓
 View Audit Trail
-```
-
----
-
-# 39. CI/CD
-
+39. CI/CD
 Recommended GitHub Actions pipeline:
 
-```text
 Git Push
    ↓
 Lint
@@ -1982,11 +1506,8 @@ Build Backend
 Build Docker Images
    ↓
 Deploy to Environment
-```
-
 Suggested checks:
 
-```text
 npm audit
 ESLint
 Jest
@@ -1995,60 +1516,40 @@ Playwright
 Container scanning
 Secret scanning
 Dependency scanning
-```
-
----
-
-# 40. Monitoring and Observability
-
+40. Monitoring and Observability
 Monitor:
 
-### Application
-
-- Request rate
-- Response time
-- Error rate
-- Active sessions
-- Upload failures
-
-### Security
-
-- Failed logins
-- MFA failures
-- Authorization failures
-- Integrity failures
-- Suspicious access
-
-### Infrastructure
-
-- CPU
-- Memory
-- Disk
-- Database connections
-- Object storage usage
-- Redis health
-- OpenSearch health
-
-### Tools
-
-```text
+Application
+Request rate
+Response time
+Error rate
+Active sessions
+Upload failures
+Security
+Failed logins
+MFA failures
+Authorization failures
+Integrity failures
+Suspicious access
+Infrastructure
+CPU
+Memory
+Disk
+Database connections
+Object storage usage
+Redis health
+OpenSearch health
+Tools
 Prometheus
 Grafana
 Pino
 OpenSearch
-```
-
 Every API request should have a correlation/request ID.
 
----
-
-# 41. SIH Prototype Scope
-
+41. SIH Prototype Scope
 The full architecture contains many enterprise capabilities. The SIH prototype should prioritize features that clearly demonstrate the problem and innovation.
 
-## 🔴 Must Implement
-
-```text
+🔴 Must Implement
 React + JavaScript
 Node.js + Express
 PostgreSQL
@@ -2068,11 +1569,7 @@ Police Asset Lifecycle
 Audit Logs
 Hash Chain
 Integrity Verification
-```
-
-## 🟡 Strong Differentiators
-
-```text
+🟡 Strong Differentiators
 Digital Signatures
 Merkle Tree
 OCR
@@ -2081,11 +1578,7 @@ Advanced filtering
 Permission-aware search
 Security dashboard
 Step-up MFA
-```
-
-## 🟢 Advanced / Optional
-
-```text
+🟢 Advanced / Optional
 Hyperledger Fabric
 Raft ordering
 KMS/HSM
@@ -2094,50 +1587,33 @@ AI/RAG
 Vector search
 Cross-organization verification
 Kubernetes
-```
-
-### Important SIH Strategy
-
+Important SIH Strategy
 Do not implement every technology merely to increase the technology count.
 
 A smaller number of correctly implemented security mechanisms is stronger than many partially implemented technologies.
 
----
-
-# 42. SIH Demonstration Scenario
-
+42. SIH Demonstration Scenario
 Use one complete story to demonstrate CaseVault.
 
-## Scenario: Investigation of a Theft Case
-
-### Step 1 — Login
-
+Scenario: Investigation of a Theft Case
+Step 1 — Login
 Investigating Officer:
 
-```text
 Username
 Password
 TOTP
-```
-
 The system authenticates the officer.
 
-### Step 2 — Create Case
-
-```text
+Step 2 — Create Case
 Case ID: CV-2026-001
 Type: Theft
 Classification: RESTRICTED
 Status: UNDER_INVESTIGATION
-```
-
-### Step 3 — Upload FIR
-
+Step 3 — Upload FIR
 The officer uploads an FIR.
 
 System automatically:
 
-```text
 Validate file
  ↓
 Generate document hash
@@ -2149,48 +1625,34 @@ Store in MinIO
 Store metadata in PostgreSQL
  ↓
 Create audit event
-```
-
-### Step 4 — Upload CCTV Evidence
-
+Step 4 — Upload CCTV Evidence
 CCTV file is registered as evidence.
 
-```text
 Evidence ID: EV-001
 Case: CV-2026-001
 Custodian: Investigating Officer
-```
-
-### Step 5 — Transfer Evidence
-
+Step 5 — Transfer Evidence
 Officer transfers EV-001 to the forensic department.
 
 System records:
 
-```text
 From: Investigating Officer
 To: Forensic Officer
 Reason: Forensic Examination
 Timestamp
 Hash
 Digital Signature
-```
-
-### Step 6 — Forensic Report
-
+Step 6 — Forensic Report
 Forensic officer uploads report.
 
 The report becomes a new document version/entity and is linked to the evidence.
 
-### Step 7 — Supervisor Approval
-
+Step 7 — Supervisor Approval
 Supervisor reviews and digitally approves the report.
 
-### Step 8 — Auditor
-
+Step 8 — Auditor
 Auditor opens the audit timeline.
 
-```text
 Case Created
    ↓
 FIR Uploaded
@@ -2202,47 +1664,30 @@ Evidence Transferred
 Forensic Report Uploaded
    ↓
 Report Approved
-```
-
-### Step 9 — Tampering Demonstration
-
+Step 9 — Tampering Demonstration
 For SIH demonstration, use a controlled test copy.
 
 Change the underlying test file.
 
 Click:
 
-```text
 VERIFY INTEGRITY
-```
-
 System calculates:
 
-```text
 Current SHA3-256
         ≠
 Registered SHA3-256
-```
-
 Then displays:
 
-```text
 ✕ TAMPERING DETECTED
 
 Hash: MISMATCH
 Signature: INVALID
 Ledger Proof: MISMATCH
-```
-
 This gives the judges a concrete demonstration of why CaseVault is different from a normal document management system.
 
----
-
-# 43. Implementation Roadmap
-
-## Phase 1 — Foundation
-
-```text
+43. Implementation Roadmap
+Phase 1 — Foundation
 Initialize monorepo
 Setup React
 Setup Express
@@ -2251,11 +1696,7 @@ Setup Docker
 Setup environment configuration
 Setup logging
 Setup API structure
-```
-
-## Phase 2 — Authentication
-
-```text
+Phase 2 — Authentication
 Users
 Roles
 Passwords
@@ -2263,21 +1704,13 @@ JWT
 Refresh Tokens
 MFA
 Security Middleware
-```
-
-## Phase 3 — Case Management
-
-```text
+Phase 3 — Case Management
 Cases
 Case Members
 Assignments
 Status
 Timeline
-```
-
-## Phase 4 — Document Management
-
-```text
+Phase 4 — Document Management
 Upload
 MinIO
 Metadata
@@ -2286,166 +1719,111 @@ Classification
 Permissions
 Download
 Approval
-```
-
-## Phase 5 — Cryptographic Security
-
-```text
+Phase 5 — Cryptographic Security
 AES-256-GCM
 SHA3-256
 HKDF
 Key hierarchy
 Digital signatures
-```
-
-## Phase 6 — Evidence
-
-```text
+Phase 6 — Evidence
 Evidence
 Custody
 Transfers
 Integrity verification
 Evidence timeline
-```
-
-## Phase 7 — Asset Management
-
-```text
+Phase 7 — Asset Management
 Assets
 Assignments
 Maintenance
 Transfers
 History
 Lifecycle
-```
-
-## Phase 8 — Audit
-
-```text
+Phase 8 — Audit
 Audit events
 Hash chain
 Merkle tree
 Verification UI
-```
-
-## Phase 9 — Search
-
-```text
+Phase 9 — Search
 Metadata search
 OCR
 OpenSearch
 Filters
-```
-
-## Phase 10 — AI
-
-```text
+Phase 10 — AI
 Embeddings
 Vector search
 RAG
 Gemini / LLM
 Permission-aware retrieval
-```
-
-## Phase 11 — Blockchain
-
-```text
+Phase 11 — Blockchain
 Fabric network
 Organizations
 Chaincode
 Ledger proofs
 Verification
-```
-
-## Phase 12 — Hardening
-
-```text
+Phase 12 — Hardening
 Security testing
 Performance testing
 Docker deployment
 Monitoring
 Documentation
 SIH demo preparation
-```
-
----
-
-# 44. Future Enhancements
-
+44. Future Enhancements
 Potential future capabilities:
 
-- Mobile application for field officers
-- Offline evidence collection with secure synchronization
-- Hardware-backed device identity
-- Biometric authentication
-- Digital forensic acquisition integration
-- Advanced DLP
-- Automated malware scanning
-- Immutable archival storage
-- Geographic evidence mapping
-- Advanced anomaly detection
-- AI-assisted investigation timelines
-- Automated case relationship discovery
-- Multi-region disaster recovery
-- Hardware security module integration
-- Post-quantum cryptography migration
-- Cross-state/cross-agency interoperability
-
----
-
-# 45. Engineering Principles
-
-## 1. Security by Design
-
+Mobile application for field officers
+Offline evidence collection with secure synchronization
+Hardware-backed device identity
+Biometric authentication
+Digital forensic acquisition integration
+Advanced DLP
+Automated malware scanning
+Immutable archival storage
+Geographic evidence mapping
+Advanced anomaly detection
+AI-assisted investigation timelines
+Automated case relationship discovery
+Multi-region disaster recovery
+Hardware security module integration
+Post-quantum cryptography migration
+Cross-state/cross-agency interoperability
+45. Engineering Principles
+1. Security by Design
 Security must be part of the architecture rather than an afterthought.
 
-## 2. Least Privilege
-
+2. Least Privilege
 Users receive only the access required for their responsibilities.
 
-## 3. Never Trust Client Authorization
-
+3. Never Trust Client Authorization
 Frontend controls are for UX only.
 
 The backend must enforce authorization.
 
-## 4. Never Store Sensitive Files in PostgreSQL
-
+4. Never Store Sensitive Files in PostgreSQL
 Store metadata in PostgreSQL and encrypted binary content in object storage.
 
-## 5. Never Store Encryption Keys in Source Code
-
+5. Never Store Encryption Keys in Source Code
 Use KMS, HSM, Vault, or secure secret management.
 
-## 6. Never Overwrite Approved Documents
-
+6. Never Overwrite Approved Documents
 Use immutable version records.
 
-## 7. Audit Sensitive Actions
-
+7. Audit Sensitive Actions
 Every important action should be traceable.
 
-## 8. AI Must Respect Authorization
-
+8. AI Must Respect Authorization
 The AI system must never retrieve a document the user cannot access directly.
 
-## 9. Blockchain Is Not Primary Storage
-
+9. Blockchain Is Not Primary Storage
 Use the ledger for proofs, provenance, and cross-organization verification.
 
-## 10. Prefer Implemented Security Over Buzzwords
-
+10. Prefer Implemented Security Over Buzzwords
 Every technology in the architecture should have a clear purpose.
 
----
-
-# 46. Conclusion
-
-**CaseVault** combines secure digital document management with investigation case management, evidence chain of custody, police asset lifecycle tracking, cryptographic integrity verification, controlled collaboration, auditability, and AI-assisted retrieval.
+46. Conclusion
+CaseVault combines secure digital document management with investigation case management, evidence chain of custody, police asset lifecycle tracking, cryptographic integrity verification, controlled collaboration, auditability, and AI-assisted retrieval.
 
 The architecture deliberately separates:
 
-```text
 Application Data
       ↓
 PostgreSQL
@@ -2472,17 +1850,13 @@ Digital Signatures
 Cross-Organization Verification
       ↓
 Hyperledger Fabric
-```
-
 The resulting system is not simply a document storage application.
 
 It is a:
 
-> **Secure Digital Case, Evidence & Police Asset Lifecycle Management Platform with Cryptographic Integrity, Tamper-Evident Auditing, Controlled Collaboration, and Authorization-Aware AI.**
+Secure Digital Case, Evidence & Police Asset Lifecycle Management Platform with Cryptographic Integrity, Tamper-Evident Auditing, Controlled Collaboration, and Authorization-Aware AI.
 
-### Final Architecture
-
-```text
+Final Architecture
                          ┌─────────────────────┐
                          │       USERS         │
                          └──────────┬──────────┘
@@ -2541,29 +1915,17 @@ It is a:
                │ Hyperledger Fabric  │
                │ Raft Ordering       │
                └─────────────────────┘
-```
-
----
-
-## 📌 Project Identity
-
-**Project:** CaseVault  
-**Category:** Secure Digital Document & Investigation Management  
-**Primary Use Case:** Law Enforcement / Legal / Investigation Departments  
-**Frontend:** React.js + JavaScript  
-**Backend:** Node.js + Express.js + JavaScript  
-**Database:** PostgreSQL  
-**File Storage:** MinIO / S3  
-**Security:** AES-256-GCM + SHA3-256 + JWT + MFA + RBAC + ABAC + Zero Trust  
-**Integrity:** Hash Chain + Merkle Tree + Digital Signatures  
-**Ledger:** Hyperledger Fabric  
-**Search:** OpenSearch + OCR  
-**AI:** RAG + LLM  
-**Deployment:** Docker / Docker Compose  
-**Language Policy:** **JavaScript only — no TypeScript anywhere**
-
----
-
-<p align="center">
-  <strong>CaseVault — Secure. Track. Preserve. Verify.</strong>
-</p>
+📌 Project Identity
+Project: CaseVault
+Category: Secure Digital Document & Investigation Management
+Primary Use Case: Law Enforcement / Legal / Investigation Departments
+Frontend: React.js + JavaScript
+Backend: Node.js + Express.js + JavaScript
+Database: PostgreSQL
+File Storage: MinIO / S3
+Security: AES-256-GCM + SHA3-256 + JWT + MFA + RBAC + ABAC + Zero Trust
+Integrity: Hash Chain + Merkle Tree + Digital Signatures
+Ledger: Hyperledger Fabric
+Search: OpenSearch + OCR
+AI: RAG + LLM
+Deployment: Docker / Docker Compose

@@ -1,4 +1,3 @@
-import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { verifyAccessToken } from '../services/auth.service.js';
 

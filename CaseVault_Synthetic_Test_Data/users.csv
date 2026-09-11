@@ -1,0 +1,9 @@
+user_id,employee_code,full_name,email,department_id,role_id,clearance_level,status
+U001,EMP-1001,Arjun Rao,arjun.rao@example.test,D001,R002,5,ACTIVE
+U002,EMP-1002,Meera Nair,meera.nair@example.test,D003,R003,5,ACTIVE
+U003,EMP-1003,Vikram Singh,vikram.singh@example.test,D004,R004,4,ACTIVE
+U004,EMP-1004,Kavya Reddy,kavya.reddy@example.test,D005,R005,3,ACTIVE
+U005,EMP-1005,Rohit Sharma,rohit.sharma@example.test,D005,R006,3,ACTIVE
+U006,EMP-1006,Admin User,admin@example.test,D001,R001,5,ACTIVE
+U007,EMP-1007,Restricted User,readonly@example.test,D005,R007,1,ACTIVE
+U008,EMP-1008,Suspended User,suspended@example.test,D001,R002,5,SUSPENDED

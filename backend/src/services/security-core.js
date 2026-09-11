@@ -107,6 +107,9 @@ export function verifyMerkleProof(rootHash, proof, value) {
 }
 
 export function verifyAuditChain(events) {
+    if (!events.length) {
+        return { valid: false, reason: 'No audit events recorded.' };
+    }
     let previousHash = 'GENESIS';
     for (const event of events) {
         const canonical = event.data

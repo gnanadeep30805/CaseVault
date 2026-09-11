@@ -1,0 +1,6 @@
+evidence_id,case_id,type,description,collected_by,collection_date,collection_location,custodian,status,classification
+EV-001,CV-2026-001,CCTV_VIDEO,Warehouse entrance CCTV footage,U001,2026-08-02,Warehouse Gate A,U001,STORED,CONFIDENTIAL
+EV-002,CV-2026-001,FINGERPRINT,Fingerprint sample from storage-room door,U001,2026-08-02,Storage Room 3,U002,EXAMINED,RESTRICTED
+EV-003,CV-2026-002,MOBILE_DEVICE,Recovered mobile device for forensic extraction,U001,2026-08-06,Subject Residence,U002,EXAMINED,TOP_SECRET
+EV-004,CV-2026-003,DASHCAM_VIDEO,Vehicle dashcam footage,U001,2026-07-13,Traffic Junction 14,U001,ARCHIVED,INTERNAL
+EV-005,CV-2026-005,DIGITAL_IMAGE,Photographic evidence requiring integrity test,U006,2026-08-21,Industrial Area,U002,VERIFIED,TOP_SECRET

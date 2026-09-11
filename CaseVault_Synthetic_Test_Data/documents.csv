@@ -1,0 +1,9 @@
+document_id,case_id,title,category,classification,status,version,uploaded_by,file_name
+DOC-001,CV-2026-001,First Information Report - Warehouse Theft,FIR,CONFIDENTIAL,APPROVED,2,U001,FIR_Warehouse_Theft.pdf
+DOC-002,CV-2026-001,Investigation Report - Initial Findings,INVESTIGATION_REPORT,CONFIDENTIAL,UNDER_REVIEW,1,U001,Investigation_Report_v1.pdf
+DOC-003,CV-2026-001,Forensic Examination Report,FORENSIC_REPORT,RESTRICTED,APPROVED,1,U002,Forensic_Report.pdf
+DOC-004,CV-2026-002,Cyber Fraud Transaction Report,INVESTIGATION_REPORT,RESTRICTED,APPROVED,3,U001,Transaction_Report.pdf
+DOC-005,CV-2026-002,Device Extraction Summary,FORENSIC_REPORT,TOP_SECRET,APPROVED,1,U002,Device_Extraction.pdf
+DOC-006,CV-2026-003,Court Order - Evidence Preservation,COURT_ORDER,INTERNAL,APPROVED,1,U003,Court_Order.pdf
+DOC-007,CV-2026-004,Archived Case Closure Report,CLOSURE_REPORT,INTERNAL,ARCHIVED,1,U004,Closure_Report.pdf
+DOC-008,CV-2026-005,Inter-Agency Intelligence Brief,LEGAL_DOCUMENT,TOP_SECRET,UNDER_REVIEW,1,U006,Intelligence_Brief.pdf

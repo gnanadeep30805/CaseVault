@@ -1,0 +1,6 @@
+department_id,name,code,location,clearance_level
+D001,Central Investigation Unit,CIU,Visakhapatnam,5
+D002,Cyber Crime Division,CCD,Visakhapatnam,5
+D003,Forensic Science Unit,FSU,Vijayawada,5
+D004,Legal Affairs Division,LAD,Amaravati,4
+D005,District Administration,DAD,Bhimunipatnam,3

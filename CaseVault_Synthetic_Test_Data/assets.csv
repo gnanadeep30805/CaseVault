@@ -1,0 +1,7 @@
+asset_id,name,category,serial_number,department_id,assigned_to,location,condition,status
+AST-001,Patrol SUV,VEHICLE,VEH-SUV-001,D005,U001,District HQ,GOOD,ACTIVE
+AST-002,Body Camera Unit 07,BODYCAM,BC-2026-007,D001,U001,CIU Locker 07,GOOD,ASSIGNED
+AST-003,Forensic Workstation,COMPUTER,FSW-2025-014,D003,U002,Forensic Lab Room 2,EXCELLENT,ACTIVE
+AST-004,Digital Evidence Camera,CAMERA,CAM-DSLR-003,D003,,Forensic Lab Locker 4,GOOD,AVAILABLE
+AST-005,Radio Set - Unit 12,COMMUNICATION,RAD-12-991,D001,,CIU Storage,FAIR,MAINTENANCE
+AST-006,Retired Laptop,COMPUTER,LAP-2019-002,D005,,Asset Disposal Room,POOR,RETIRED

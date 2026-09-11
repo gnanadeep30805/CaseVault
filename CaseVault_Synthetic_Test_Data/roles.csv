@@ -1,0 +1,8 @@
+role_id,name,description
+R001,SUPER_ADMIN,Full system administration
+R002,INVESTIGATING_OFFICER,Case/evidence investigation
+R003,FORENSIC_OFFICER,Forensic examination
+R004,LEGAL_OFFICER,Legal review
+R005,AUDITOR,Audit/integrity verification
+R006,ASSET_MANAGER,Asset lifecycle management
+R007,READ_ONLY,Restricted read-only access

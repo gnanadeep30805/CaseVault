@@ -55,6 +55,8 @@ const seedState = {
     ],
     custodyEvents: [],
     auditLogs: [],
+    assetHistory: [],
+    maintenanceRecords: [],
 };
 
 let state;
@@ -78,9 +80,7 @@ async function ensureLoaded() {
 
 async function persist() {
     await fs.mkdir(dataDirectory, { recursive: true });
-    const temporaryFile = `${dataFile}.tmp`;
-    await fs.writeFile(temporaryFile, JSON.stringify(state, null, 2));
-    await fs.rename(temporaryFile, dataFile);
+    await fs.writeFile(dataFile, JSON.stringify(state, null, 2));
 }
 
 async function save() {
@@ -114,6 +114,14 @@ export async function updateCollectionItem(collection, id, update) {
     Object.assign(item, update);
     await save();
     return item;
+}
+
+export async function replaceCollection(collection, items) {
+    const loaded = await ensureLoaded();
+    if (!Array.isArray(loaded[collection])) throw new Error(`Unknown collection: ${collection}`);
+    loaded[collection] = items;
+    await save();
+    return loaded[collection];
 }
 
 export async function addAuditEvent({ actor, action, resource, resourceId, metadata = {} }) {

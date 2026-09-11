@@ -1,0 +1,13 @@
+permission_id,code,description
+P001,CASE_CREATE,Create cases
+P002,CASE_READ,View cases
+P003,CASE_UPDATE,Update cases
+P004,DOCUMENT_UPLOAD,Upload documents
+P005,DOCUMENT_DOWNLOAD,Download documents
+P006,DOCUMENT_APPROVE,Approve documents
+P007,EVIDENCE_REGISTER,Register evidence
+P008,EVIDENCE_TRANSFER,Transfer evidence
+P009,EVIDENCE_VERIFY,Verify evidence
+P010,ASSET_MANAGE,Manage assets
+P011,AUDIT_READ,View audit logs
+P012,ADMIN_MANAGE,Administer system
