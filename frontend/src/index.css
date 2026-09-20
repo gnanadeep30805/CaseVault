@@ -333,3 +333,12 @@ td {
         grid-template-columns: 1fr;
     }
 }
+
+.notice {
+    padding: 12px;
+    margin: 12px 0;
+    border: 1px solid #b8d8ca;
+    background: #edf8f1;
+    color: #174d32;
+    border-radius: 4px;
+}

@@ -57,6 +57,8 @@ const seedState = {
     auditLogs: [],
     assetHistory: [],
     maintenanceRecords: [],
+    users: [],
+    mailOutbox: [],
 };
 
 let state;

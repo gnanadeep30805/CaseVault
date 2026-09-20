@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { authenticator } from 'otplib';
 import { env } from '../config/env.js';
+import { appendToCollection, readCollection } from './store.js';
 
 const users = [
     {
@@ -48,10 +49,32 @@ const users = [
 
 const refreshStore = new Map();
 
-function getUserByIdentifier(identifier) {
-    return users.find(
-        (user) => user.email === identifier || user.username === identifier || user.id === identifier,
+async function getUserByIdentifier(identifier) {
+    const registeredUsers = await readCollection('users');
+    const normalizedIdentifier = String(identifier || '').trim().toLowerCase();
+    return [...users, ...registeredUsers].find(
+        (user) => user.email.toLowerCase() === normalizedIdentifier || user.username.toLowerCase() === normalizedIdentifier || user.id === identifier,
     );
+}
+
+async function getUserById(id) {
+    const registeredUsers = await readCollection('users');
+    return [...users, ...registeredUsers].find((user) => user.id === id);
+}
+
+function toPublicUser(user) {
+    if (!user) return null;
+    return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        department: user.department,
+        status: user.status,
+        mfaEnabled: user.mfaEnabled,
+        lastLogin: user.lastLogin,
+    };
 }
 
 function createAccessToken(user) {
@@ -69,7 +92,7 @@ function createRefreshToken(user) {
 }
 
 export async function loginUser({ identifier, password, otp }) {
-    const user = getUserByIdentifier(identifier);
+    const user = await getUserByIdentifier(identifier);
     if (!user || user.status !== 'active' || !await bcrypt.compare(String(password || ''), user.passwordHash)) {
         throw Object.assign(new Error('Invalid credentials.'), { code: 'INVALID_CREDENTIALS', status: 401 });
     }
@@ -107,6 +130,57 @@ export async function loginUser({ identifier, password, otp }) {
     };
 }
 
+export async function registerUser({ name, email, username, password, department = 'Operations' }) {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const normalizedUsername = String(username || '').trim().toLowerCase();
+    const registeredUsers = await readCollection('users');
+    const exists = [...users, ...registeredUsers].some(
+        (user) => user.email === normalizedEmail || user.username === normalizedUsername,
+    );
+    if (exists) {
+        throw Object.assign(new Error('An account with that email or username already exists.'), { code: 'ACCOUNT_EXISTS', status: 409 });
+    }
+    if (!name || !normalizedEmail || !normalizedUsername || String(password || '').length < 8) {
+        throw Object.assign(new Error('Name, email, username, and a password of at least 8 characters are required.'), { code: 'INVALID_SIGNUP', status: 400 });
+    }
+
+    const user = {
+        id: `u-${Date.now()}`,
+        name: String(name).trim(),
+        email: normalizedEmail,
+        username: normalizedUsername,
+        passwordHash: await bcrypt.hash(String(password), 12),
+        role: 'Investigation Officer',
+        department,
+        status: 'active',
+        mfaEnabled: true,
+        mfaSecret: authenticator.generateSecret(),
+        lastLogin: null,
+    };
+    await appendToCollection('users', user);
+    const mfaSetup = {
+        secret: user.mfaSecret,
+        otpAuthUrl: authenticator.keyuri(user.username, 'CaseVault', user.mfaSecret),
+    };
+    if (env.allowDemoMfa) mfaSetup.demoOtp = authenticator.generate(user.mfaSecret);
+
+    return {
+        user: { id: user.id, name: user.name, email: user.email, username: user.username, role: user.role, department: user.department },
+        mfaSetup,
+    };
+}
+
+export async function getDemoMfaCode({ identifier, password }) {
+    if (env.nodeEnv === 'production' || env.allowDemoMfa !== true) {
+        throw Object.assign(new Error('Demo MFA codes are disabled.'), { code: 'DEMO_MFA_DISABLED', status: 404 });
+    }
+    const user = await getUserByIdentifier(identifier);
+    if (!user || !user.mfaEnabled || !await bcrypt.compare(String(password || ''), user.passwordHash)) {
+        throw Object.assign(new Error('Invalid credentials.'), { code: 'INVALID_CREDENTIALS', status: 401 });
+    }
+    return { code: authenticator.generate(user.mfaSecret), validForSeconds: 30 };
+}
+
 export function verifyAccessToken(token) {
     try {
         return jwt.verify(token, env.jwtAccessSecret, { algorithms: ['HS256'] });
@@ -118,7 +192,7 @@ export function verifyAccessToken(token) {
     }
 }
 
-export function refreshAccessToken(token) {
+export async function refreshAccessToken(token) {
     const userId = refreshStore.get(token);
     if (!userId) {
         const err = new Error('Invalid refresh token.');
@@ -127,7 +201,7 @@ export function refreshAccessToken(token) {
         throw err;
     }
 
-    const user = users.find((item) => item.id === userId);
+    const user = await getUserById(userId);
     if (!user) {
         const err = new Error('User not found.');
         err.code = 'USER_NOT_FOUND';
@@ -144,10 +218,10 @@ export function logoutUser(token) {
     return { success: true };
 }
 
-export function getCurrentUserFromToken(token) {
+export async function getCurrentUserFromToken(token) {
     const payload = verifyAccessToken(token);
-    const user = users.find((item) => item.id === payload.sub);
-    return user ? { ...user } : null;
+    const user = await getUserById(payload.sub);
+    return toPublicUser(user);
 }
 
 export function listUsersForUI() {

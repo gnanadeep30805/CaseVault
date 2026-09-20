@@ -44,6 +44,7 @@ export default function LoginPage({ onLogin }) {
                     <button className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
                         {loading ? 'Signing in...' : 'Login'}
                     </button>
+                    <button type="button" className="btn btn-secondary" style={{ width: '100%', marginTop: 12 }} onClick={() => navigate('/signup')}>Create account</button>
                     <button type="button" className="btn btn-secondary" style={{ width: '100%', marginTop: 12 }}>Forgot Password</button>
                 </form>
             </div>

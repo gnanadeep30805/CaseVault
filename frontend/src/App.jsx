@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import LoginPage from './pages/LoginPage.jsx';
 import VerifyMfaPage from './pages/VerifyMfaPage.jsx';
+import SignupPage from './pages/SignupPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import CasesPage from './pages/CasesPage.jsx';
 import CaseDetailPage from './pages/CaseDetailPage.jsx';
@@ -51,6 +52,11 @@ function App() {
         return data;
     };
 
+    const handleSignup = async (payload) => {
+        const response = await api.post('/auth/signup', payload);
+        return response.data.data;
+    };
+
     const handleLogout = async () => {
         try {
             if (auth.refreshToken) await api.post('/auth/logout', { refreshToken: auth.refreshToken });
@@ -63,6 +69,7 @@ function App() {
     return (
         <Routes>
             <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+            <Route path="/signup" element={<SignupPage onSignup={handleSignup} />} />
             <Route path="/verify-mfa" element={<VerifyMfaPage onVerify={handleMfa} />} />
             <Route path="/" element={isAuthenticated ? <Layout onLogout={handleLogout} user={auth.user} /> : <Navigate to="/login" replace />}>
                 <Route index element={<DashboardPage />} />

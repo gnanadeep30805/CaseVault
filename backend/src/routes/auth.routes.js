@@ -1,8 +1,17 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { loginUser, refreshAccessToken, logoutUser, getCurrentUserFromToken } from '../services/auth.service.js';
+import { loginUser, registerUser, getDemoMfaCode, refreshAccessToken, logoutUser, getCurrentUserFromToken } from '../services/auth.service.js';
 
 const router = express.Router();
+
+router.post('/signup', async (req, res, next) => {
+    try {
+        const result = await registerUser(req.body || {});
+        res.status(201).json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+});
 
 router.post('/login', async (req, res, next) => {
     try {
@@ -24,10 +33,19 @@ router.post('/verify-mfa', async (req, res, next) => {
     }
 });
 
+router.post('/demo-code', async (req, res, next) => {
+    try {
+        const result = await getDemoMfaCode(req.body || {});
+        res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+});
+
 router.post('/refresh', async (req, res, next) => {
     try {
         const { refreshToken } = req.body || {};
-        const result = refreshAccessToken(refreshToken);
+        const result = await refreshAccessToken(refreshToken);
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         next(error);
@@ -44,9 +62,9 @@ router.post('/logout', async (req, res, next) => {
     }
 });
 
-router.get('/me', requireAuth, (req, res) => {
+router.get('/me', requireAuth, async (req, res) => {
     const token = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null;
-    const user = getCurrentUserFromToken(token);
+    const user = await getCurrentUserFromToken(token);
     res.status(200).json({ success: true, data: { user } });
 });
 

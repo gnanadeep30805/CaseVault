@@ -10,8 +10,17 @@ export const env = {
     jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'dev_refresh_secret_change_me',
     mfaSecret: process.env.MFA_SECRET || 'JBSWY3DPEHPK3PXP',
     devPasswordHash: process.env.DEV_PASSWORD_HASH || '$2b$12$/ordMkXGm.tJ.BCpXwOCy.SoXTrXMYOxFd4MRy3dL/WivS1sGceRG',
+    allowDemoMfa: process.env.ALLOW_DEMO_MFA !== 'false' && (process.env.NODE_ENV || 'development') !== 'production',
     redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
     corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    smtp: {
+        host: process.env.SMTP_HOST || '',
+        port: Number(process.env.SMTP_PORT || 587),
+        secure: process.env.SMTP_SECURE === 'true',
+        user: process.env.SMTP_USER || '',
+        pass: process.env.SMTP_PASS || '',
+        from: process.env.SMTP_FROM || process.env.SMTP_USER || 'CaseVault <noreply@casevault.local>',
+    },
     minio: {
         endpoint: process.env.MINIO_ENDPOINT || 'localhost',
         port: Number(process.env.MINIO_PORT || 9000),
