@@ -1,67 +1,293 @@
+# CaseVault
+
 <div align="center">
-  #CaseVault
 
-<p>
-  <img src="https://img.shields.io/badge/CaseVault-Secure%20Case%20%26%20Evidence%20Platform-2563eb?style=for-the-badge" alt="CaseVault" />
-</p>
+**Secure Case, Evidence & Asset Management with Cryptographic Integrity**
 
-<p>
-  <a href="https://github.com/gnanadeep30805/CaseVault"><img src="https://img.shields.io/badge/stack-React%20%2B%20Express-0f172a?style=flat-square" alt="Stack" /></a>
-  <img src="https://img.shields.io/badge/auth-JWT%20%2B%20TOTP%20MFA-16a34a?style=flat-square" alt="Auth" />
-  <img src="https://img.shields.io/badge/crypto-AES--256--GCM%20%7C%20SHA3--256-7c3aed?style=flat-square" alt="Crypto" />
-  <img src="https://img.shields.io/badge/license-see%20repo-64748b?style=flat-square" alt="License" />
-</p>
+A security-first web platform for managing investigation cases, documents, evidence, department assets, and audit records — with server-side authorization, multi-factor authentication, tamper-evident chains, and cryptographic integrity verification.
 
-**Secure digital case, evidence, and police-asset management** for investigation teams. CaseVault is a working React + Express prototype: officers can sign in, manage cases, verify document and evidence integrity, follow chain of custody, and audit every sensitive action.
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
+[![Node.js](https://img.shields.io/badge/Node.js-LTS-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)](https://expressjs.com/)
+[![JWT](https://img.shields.io/badge/Auth-JWT%20%2B%20TOTP-7C3AED)](https://jwt.io/)
+[![Security](https://img.shields.io/badge/Security-AES--256--GCM%20%7C%20SHA3--256-DC2626)](#security-model)
 
-> Built for law-enforcement / legal workflows. Security checks run on the **server**, not only in the UI.
 </div>
 
 ---
 
-## Live demo (local)
+## Overview
 
-After you start the app (steps below), open:
+Investigation teams work with sensitive records where **confidentiality, controlled access, traceability, and integrity** are critical.
 
-| Surface | URL |
-| --- | --- |
-| **Web app** | [http://localhost:5173](http://localhost:5173) |
-| **API health** | [http://localhost:4000/health](http://localhost:4000/health) |
-| **API base** | `http://localhost:4000/api/v1` |
+Traditional file-management systems can store documents, but storage alone does not answer important questions:
 
-### Demo accounts
+- Who is allowed to access a case?
+- Has an evidence record been changed?
+- Who transferred custody of an item?
+- Can an audit trail be trusted?
+- Can the system verify that a document is still the same document?
+- Can sensitive operations be traced back to a specific action?
 
-Password for all seeded users: `password123`
+**CaseVault addresses these requirements by combining case management with security and integrity controls.**
 
-| Role | Email | Username | MFA |
-| --- | --- | --- | --- |
-| **Supervisor (fastest demo)** | `supervisor@casevault.local` | `supervisor` | Off |
-| Administrator | `admin@casevault.local` | `admin` | TOTP required |
-| Investigation Officer | `investigator@casevault.local` | `investigator` | TOTP required |
+The platform provides a centralized workflow for:
 
-Local TOTP secret (when MFA is enabled): `JBSWY3DPEHPK3PXP`  
-Add it in any authenticator app (Google Authenticator, Authy, 1Password).
+**Cases → Documents → Evidence → Chain of Custody → Assets → Audit Logs → Integrity Verification**
+
+> CaseVault is a working development prototype. It demonstrates the security architecture and implemented mechanisms described below; production deployments would require hardened infrastructure, managed key storage, persistent production databases, and operational controls.
 
 ---
 
-## Why CaseVault
+## The Problem
 
-Typical document tools store files and hope nobody tampers with them. CaseVault treats **integrity as a first-class feature**:
+Sensitive investigation data is often distributed across documents, spreadsheets, file systems, and separate tracking processes.
+
+This creates several risks:
+
+1. **Unauthorized access** — users may access information outside their role or clearance.
+2. **Record tampering** — changes to documents or evidence records may be difficult to detect.
+3. **Broken chain of custody** — evidence movement needs a verifiable history.
+4. **Weak auditability** — sensitive actions need an immutable or tamper-evident trail.
+5. **Fragmented asset management** — department equipment needs lifecycle tracking.
+6. **Client-side-only security** — hiding a UI button is not sufficient authorization.
+
+CaseVault approaches these problems from the backend first: **authentication, authorization, integrity verification, and audit controls are enforced by the API rather than trusted solely to the frontend.**
+
+---
+
+## The Solution
+
+CaseVault provides a single security-focused platform where authorized users can manage investigation data while the backend continuously applies access and integrity controls.
+
+### Core workflow
 
 ```text
-Login → JWT / MFA → role + policy checks → action
-     → hash / encrypt → custody or audit event → verify anytime
+User
+  ↓
+Authentication
+  ↓
+TOTP MFA (when enabled)
+  ↓
+JWT access
+  ↓
+Server-side security policy
+  ↓
+RBAC / ABAC checks
+  ↓
+Case / Document / Evidence / Asset operation
+  ↓
+Integrity + audit processing
+  ↓
+Verified result
 ```
 
-| You can | How it shows up |
-| --- | --- |
-| Authenticate securely | JWT access + refresh tokens, optional TOTP MFA |
-| Run investigations | Cases, members, status, classification |
-| Protect records | Document metadata, SHA3-256 verification, AES-256-GCM helpers |
-| Track physical/digital proof | Evidence register + custody hash chain |
-| Manage department kit | Asset lifecycle (assign, maintain, retire) |
-| Prove what happened | Tamper-evident audit log + Merkle checks |
-| See security posture | Security dashboard and verification screens |
+### What the platform provides
+
+| Capability | Solution |
+|---|---|
+| Authentication | JWT-based authentication with optional TOTP MFA |
+| Authorization | Server-side role and policy checks |
+| Case management | Create, view, classify, and manage investigation cases |
+| Document protection | Document metadata and cryptographic integrity verification |
+| Evidence management | Evidence registration and custody transfers |
+| Chain of custody | Hash-linked custody history |
+| Asset management | Track department assets through their lifecycle |
+| Auditability | Security-sensitive actions recorded in an audit chain |
+| Integrity verification | SHA3-256, hash chains, and Merkle validation |
+| Data protection | AES-256-GCM encryption helpers |
+| Security visibility | Security and verification dashboards |
+
+---
+
+## Key Features
+
+### 🔐 Authentication & MFA
+
+CaseVault uses a multi-step authentication flow:
+
+```text
+Login
+  ↓
+Credentials validated
+  ↓
+MFA enabled?
+  ├── No  → JWT issued
+  └── Yes → TOTP verification → JWT issued
+```
+
+Implemented components include:
+
+- JWT bearer authentication
+- Password hashing
+- TOTP-based MFA flow
+- Token refresh/logout flow
+- Protected API routes
+- Authentication middleware
+
+---
+
+### 🛡️ Server-Side Authorization
+
+CaseVault does not rely on frontend route protection alone.
+
+Every protected API operation is evaluated on the server.
+
+The authorization model combines:
+
+- Authentication state
+- User role
+- Department
+- Clearance
+- MFA state
+- Device trust
+- Request risk
+- Resource/action being requested
+
+Conceptually:
+
+```text
+Request
+  ↓
+Authenticated?
+  ↓
+Role allowed?
+  ↓
+Policy satisfied?
+  ↓
+Resource access allowed?
+  ↓
+Execute operation
+```
+
+This creates a **zero-trust-style authorization flow** where each sensitive request is evaluated instead of assuming that an authenticated user can access everything.
+
+---
+
+### 🔏 Cryptographic Integrity
+
+CaseVault treats data integrity as a first-class feature.
+
+Implemented cryptographic mechanisms include:
+
+- **AES-256-GCM** for authenticated encryption
+- **SHA3-256** for hashing
+- **HKDF-style key derivation helper**
+- **Hash chains**
+- **Merkle tree generation**
+- **Merkle proof verification**
+- **Custody-chain validation**
+- **Audit-chain validation**
+
+The goal is not simply to store a record, but to provide a mechanism for detecting unexpected modification.
+
+---
+
+### 📦 Evidence & Chain of Custody
+
+Evidence records can move between authorized users or stages of an investigation.
+
+Each custody event can reference the previous state through cryptographic hashes:
+
+```text
+Evidence Created
+      ↓
+Custody Event 1
+      ↓
+Custody Event 2
+      ↓
+Custody Event 3
+      ↓
+Current Evidence State
+```
+
+Conceptually:
+
+```text
+currentHash = H(previousHash + eventData)
+```
+
+If historical data is modified, the hash relationship can no longer validate correctly.
+
+CaseVault exposes this verification through the backend and the application UI.
+
+---
+
+### 📋 Tamper-Evident Audit Trail
+
+Security-sensitive operations are represented in an audit chain.
+
+Instead of treating logs as ordinary text records, CaseVault maintains relationships between audit events so that the sequence can be verified.
+
+```text
+Event A
+  ↓ hash
+Event B
+  ↓ hash
+Event C
+  ↓ hash
+Event D
+```
+
+The verification layer can detect inconsistencies in the expected chain.
+
+> This provides tamper-evident integrity; it should not be described as mathematically immutable storage without additional infrastructure controls.
+
+---
+
+### 🗂️ Case Management
+
+Cases provide the central organizational unit for investigations.
+
+The application supports workflows around:
+
+- Case listing
+- Case details
+- Case status
+- Classification
+- Case members
+- Associated documents
+- Associated evidence
+- Investigation-related records
+
+---
+
+### 📄 Document Management
+
+Documents are associated with investigation workflows and can be checked for integrity.
+
+The platform provides:
+
+- Document records
+- Document metadata
+- Protected API access
+- Integrity verification
+- Security verification UI
+
+The important distinction is that **document integrity can be verified independently of simply trusting the stored metadata.**
+
+---
+
+### 🧰 Asset Management
+
+CaseVault also manages department assets such as operational equipment.
+
+The asset lifecycle can be represented as:
+
+```text
+Available
+   ↓
+Assigned
+   ↓
+Maintenance
+   ↓
+Available
+   ↓
+Retired
+```
+
+This provides a single place to track operational assets alongside investigation workflows.
 
 ---
 
@@ -69,76 +295,216 @@ Login → JWT / MFA → role + policy checks → action
 
 ```mermaid
 flowchart LR
-  subgraph Users
-    O[Officers]
-    F[Forensics]
-    A[Auditors]
-  end
+    U[Authorized Users] --> UI[React + Vite]
+    UI --> API[Express REST API]
 
-  subgraph Client
-    UI[React + Vite]
-  end
+    API --> AUTH[Authentication]
+    AUTH --> MFA[TOTP MFA]
+    API --> POLICY[RBAC / ABAC / Policy Engine]
+    API --> SEC[Security & Integrity Layer]
 
-  subgraph API
-    EX[Express /api/v1]
-    SEC[JWT · MFA · RBAC/ABAC]
-    CRY[AES-GCM · SHA3 · HKDF · Merkle]
-  end
+    SEC --> HASH[SHA3-256]
+    SEC --> ENC[AES-256-GCM]
+    SEC --> MERKLE[Merkle Validation]
+    SEC --> CHAIN[Hash Chains]
 
-  subgraph Data
-    JSON[(JSON store)]
-  end
+    API --> CASES[Cases]
+    API --> DOCS[Documents]
+    API --> EVIDENCE[Evidence]
+    API --> ASSETS[Assets]
+    API --> AUDIT[Audit Trail]
 
-  O --> UI
-  F --> UI
-  A --> UI
-  UI -->|REST JSON| EX
-  EX --> SEC
-  SEC --> CRY
-  CRY --> JSON
+    CASES --> DATA[(Application Data)]
+    DOCS --> DATA
+    EVIDENCE --> DATA
+    ASSETS --> DATA
+    AUDIT --> DATA
 ```
+
+### Security request flow
 
 ```mermaid
-flowchart TB
-  L[Login] --> M{MFA enabled?}
-  M -->|yes| T[TOTP]
-  M -->|no| J[Issue JWT]
-  T --> J
-  J --> Z[Zero-trust policy]
-  Z --> R[RBAC / ABAC]
-  R --> X[Cases · Documents · Evidence · Assets]
-  X --> H[Hash chain / custody]
-  H --> V[Integrity verify]
+flowchart TD
+    A[Client Request] --> B[JWT Authentication]
+    B --> C{MFA / Session Valid?}
+    C -->|No| D[Reject Request]
+    C -->|Yes| E[Security Policy]
+    E --> F{RBAC / ABAC Allowed?}
+    F -->|No| G[Reject Request]
+    F -->|Yes| H[Resource Operation]
+    H --> I[Integrity / Custody / Audit Processing]
+    I --> J[Response]
 ```
 
-**Today’s data layer** is a seeded JSON store (`backend/data/`, gitignored) so the prototype runs without Docker. Env hooks exist for PostgreSQL, Redis, and MinIO when you move to production-style infrastructure.
-
 ---
 
-## Tech stack (what this repo actually uses)
+## Technology Stack
 
 | Layer | Technology |
-| --- | --- |
-| Frontend | React 18, Vite, React Router, Axios, Lucide, Recharts, Tailwind |
-| Backend | Node.js, Express, Helmet, CORS, rate limiting, Zod, Pino |
-| Auth | JWT (HS256), bcrypt, `otplib` TOTP |
-| Crypto | AES-256-GCM, SHA3-256, HKDF-style derivation, Merkle tree, hash chains |
-| Tests | Node.js built-in test runner |
-
-JavaScript only (`.js` / `.jsx`). No TypeScript in application source.
+|---|---|
+| Frontend | React 18, Vite, React Router |
+| State | Redux Toolkit |
+| UI | Tailwind CSS, Lucide React |
+| Data visualization | Recharts |
+| HTTP client | Axios |
+| Backend | Node.js, Express |
+| Validation | Zod |
+| Security middleware | Helmet, CORS, rate limiting |
+| Authentication | JWT |
+| Password security | Argon2 / bcrypt |
+| MFA | otplib / TOTP |
+| Encryption | AES-256-GCM |
+| Hashing | SHA3-256 |
+| Integrity | Hash chains, Merkle trees |
+| Logging | Pino |
+| Storage hooks | PostgreSQL, Redis, MinIO |
+| Testing | Node.js built-in test runner |
+| Language | JavaScript / JSX |
 
 ---
 
-## Quick start
+## Project Structure
 
-**Prerequisites:** Node.js LTS and npm.
+```text
+CaseVault/
+│
+├── frontend/
+│   ├── src/
+│   │   ├── pages/
+│   │   ├── components/
+│   │   ├── services/
+│   │   └── ...
+│   ├── package.json
+│   └── vite.config.*
+│
+├── backend/
+│   ├── src/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── middleware/
+│   │   └── server.js
+│   ├── scripts/
+│   ├── package.json
+│   └── ...
+│
+├── docs/
+│   ├── architecture.md
+│   ├── security.md
+│   ├── cryptography.md
+│   ├── authorization.md
+│   └── evidence-chain.md
+│
+├── .env.example
+├── .gitignore
+└── README.md
+```
+
+---
+
+## Application Modules
+
+| Module | Purpose |
+|---|---|
+| Dashboard | Security and operational overview |
+| Cases | Investigation case management |
+| Documents | Document records and integrity checks |
+| Evidence | Evidence registration and custody |
+| Assets | Department asset lifecycle |
+| Audit | Audit events and chain verification |
+| Security | Security posture and policy information |
+| Verification | Integrity verification workflows |
+| Profile | User profile |
+| Settings | Application preferences |
+
+---
+
+## API
+
+The backend exposes REST APIs under:
+
+```text
+/api/v1
+```
+
+### Authentication
+
+```http
+POST /api/v1/auth/login
+POST /api/v1/auth/verify-mfa
+POST /api/v1/auth/refresh
+POST /api/v1/auth/logout
+GET  /api/v1/auth/me
+```
+
+### Cases
+
+```http
+GET  /api/v1/cases
+POST /api/v1/cases
+GET  /api/v1/cases/:id
+```
+
+### Other API groups
+
+```text
+Documents
+Evidence
+Assets
+Audit
+Security
+```
+
+Health check:
+
+```http
+GET /health
+```
+
+A successful API response follows the project's standard response structure:
+
+```json
+{
+  "success": true,
+  "data": {}
+}
+```
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+Install:
+
+- Node.js LTS
+- npm
+- Git
+
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/gnanadeep30805/CaseVault.git
 cd CaseVault
 ```
 
-**Backend**
+### 2. Configure environment variables
+
+Copy the example environment file:
+
+```bash
+cp .env.example backend/.env
+```
+
+On Windows PowerShell:
+
+```powershell
+Copy-Item .env.example backend/.env
+```
+
+Review the values in `backend/.env` before running the application.
+
+### 3. Start the backend
 
 ```bash
 cd backend
@@ -146,9 +512,15 @@ npm install
 npm start
 ```
 
-API listens on **port 4000**.
+The API runs on:
 
-**Frontend** (new terminal)
+```text
+http://localhost:4000
+```
+
+### 4. Start the frontend
+
+Open another terminal:
 
 ```bash
 cd frontend
@@ -156,111 +528,245 @@ npm install
 npm run dev
 ```
 
-App listens on **port 5173**.
+The development application is available at:
 
-Optional: copy `.env.example` to `backend/.env` and set secrets. Defaults work for local development.
+```text
+http://localhost:5173
+```
 
-### Tests
+### 5. Run backend tests
 
 ```bash
 cd backend
-npm test -- --test-reporter=spec
+npm test
 ```
 
 ---
 
-## Application map
+## Local Development
 
-| Route | Purpose |
-| --- | --- |
-| `/login` | Sign in |
-| `/verify-mfa` | TOTP step |
-| `/` | Dashboard |
-| `/cases` · `/cases/:id` | Case list and detail |
-| `/documents` · `/documents/:id/integrity` | Documents and hash verify |
-| `/evidence` · `/evidence/:id/integrity` | Evidence and custody verify |
-| `/assets` | Asset register |
-| `/audit` · `/audit/integrity` | Audit trail and chain check |
-| `/security` · `/verification` | Security overview and proofs |
-| `/settings` · `/profile` | Preferences and user profile |
+| Service | Address |
+|---|---|
+| Web application | http://localhost:5173 |
+| Backend API | http://localhost:4000 |
+| API health | http://localhost:4000/health |
+| API base | http://localhost:4000/api/v1 |
+
+The current prototype is designed to run locally without requiring the full production infrastructure stack.
 
 ---
 
-## API surface
+## Security Model
 
-All routes are under `/api/v1`.
+CaseVault follows four major security principles:
 
-| Group | Examples |
-| --- | --- |
-| Auth | `POST /auth/login` · `POST /auth/verify-mfa` · `POST /auth/refresh` · `POST /auth/logout` · `GET /auth/me` |
-| Cases | `GET/POST /cases` · `GET /cases/:id` |
-| Documents | Upload, list, integrity verify |
-| Evidence | Register, transfer custody, verify |
-| Assets | CRUD-style lifecycle operations |
-| Audit | Event list, chain verify |
-| Security | Overview, alerts, policy evaluation |
-| Health | `GET /health` (no `/api` prefix) |
+### 1. Authenticate every protected session
 
-Success responses use `{ success: true, data }` with a request id from middleware.
+A user must authenticate before accessing protected resources.
+
+### 2. Authorize on the server
+
+Frontend checks improve user experience but are **not treated as security boundaries**.
+
+The backend evaluates permissions before sensitive operations.
+
+### 3. Verify integrity
+
+Documents, evidence custody events, and audit events can be checked through cryptographic verification mechanisms.
+
+### 4. Keep secrets away from the frontend
+
+Cryptographic and authentication secrets belong in the backend environment and, in production, should be managed by dedicated secret/key-management infrastructure.
 
 ---
 
-## Repository layout
+## Cryptographic Design
+
+### Encryption
+
+CaseVault includes AES-256-GCM support for authenticated encryption.
 
 ```text
-CaseVault/
-├── frontend/          # React SPA (Vite)
-│   └── src/pages/     # Dashboard, cases, evidence, audit, security…
-├── backend/
-│   ├── src/routes/    # REST modules
-│   ├── src/services/  # Auth, store, security-core
-│   └── src/middleware/
-├── docs/              # Architecture, crypto, authorization, evidence chain
-├── .env.example
-└── README.md
+Plaintext
+   ↓
+AES-256-GCM
+   ↓
+Ciphertext + Authentication Tag
 ```
+
+A unique IV/nonce must be used for each encryption operation.
+
+### Hashing
+
+SHA3-256 is used to produce deterministic integrity digests:
+
+```text
+Data
+ ↓
+SHA3-256
+ ↓
+Digest
+```
+
+### Merkle validation
+
+Multiple records can be represented in a Merkle tree:
+
+```text
+             Root
+            /    \
+          H12    H34
+         /  \   /  \
+       H1   H2 H3   H4
+       │    │  │    │
+      R1   R2 R3   R4
+```
+
+This allows the system to validate whether a record is consistent with a known Merkle root.
 
 ---
 
-## Implemented vs later
+## Current Implementation vs Production Roadmap
 
-**In this prototype**
+CaseVault intentionally distinguishes between **implemented prototype functionality** and infrastructure that would be required for a production deployment.
 
-- JWT login, MFA gate, protected APIs  
-- Cases, documents, evidence, assets, audit UI + APIs  
-- AES-256-GCM, SHA3-256, HKDF, Merkle, custody/audit hash chains  
-- Zero-trust style policy evaluation on the server  
-- Security and verification screens  
+### Implemented
 
-**Documented for later (not claimed as running services)**
+- React web application
+- Express REST API
+- JWT authentication
+- TOTP MFA flow
+- Server-side authorization/policy evaluation
+- Cases
+- Documents
+- Evidence
+- Asset management
+- Audit records
+- AES-256-GCM helpers
+- SHA3-256 hashing
+- HKDF-style key derivation helper
+- Merkle tree validation
+- Custody hash-chain validation
+- Audit-chain validation
+- Security and verification screens
+- Backend tests for security/integrity behavior
 
-OpenSearch, OCR workers, RabbitMQ, RAG assistant, Hyperledger Fabric, production KMS/HSM, Grafana/Prometheus.
+### Production roadmap
 
-That split is intentional: a few **working** security mechanisms beat a long list of unused names.
+The repository contains integration direction/hooks for infrastructure such as:
+
+- PostgreSQL
+- Redis
+- MinIO
+- Vault / KMS / HSM-backed key management
+- OpenSearch
+- OCR processing
+- RabbitMQ
+- RAG-based investigation assistant
+- Hyperledger Fabric
+- Prometheus / Grafana
+
+These should be treated as **future production extensions unless explicitly implemented and deployed in the repository**.
+
+---
+
+## Why the Architecture Matters
+
+The central design decision in CaseVault is to combine **business workflows with verifiable security controls**.
+
+Instead of:
+
+```text
+Store → Trust
+```
+
+the platform aims for:
+
+```text
+Store
+  ↓
+Control access
+  ↓
+Record the operation
+  ↓
+Protect integrity
+  ↓
+Verify when required
+```
+
+This makes security an application workflow rather than a separate feature.
 
 ---
 
 ## Documentation
 
-| Doc | Topic |
-| --- | --- |
-| [docs/architecture.md](docs/architecture.md) | System shape |
-| [docs/security.md](docs/security.md) | AuthZ and integrity |
-| [docs/cryptography.md](docs/cryptography.md) | Primitives |
-| [docs/authorization.md](docs/authorization.md) | RBAC / ABAC |
-| [docs/evidence-chain.md](docs/evidence-chain.md) | Custody flow |
+Detailed technical documentation is available in the repository:
+
+- [Architecture](docs/architecture.md)
+- [Security Model](docs/security.md)
+- [Cryptography](docs/cryptography.md)
+- [Authorization Model](docs/authorization.md)
+- [Evidence Chain](docs/evidence-chain.md)
 
 ---
 
-## Security notes
+## Security Considerations
 
-- Do not commit `.env`, JWT secrets, or production keys.  
-- Frontend checks are UX only; the API enforces access.  
-- Default passwords and MFA secrets are **development only**.  
-- Synthetic test datasets stay out of Git (see `.gitignore`).
+This project is intended for development, demonstration, learning, and prototyping.
+
+For real deployment involving sensitive investigation or legal records, additional controls would be required, including:
+
+- Production-grade identity management
+- Hardware-backed or managed key storage
+- Secure secret rotation
+- Persistent production database configuration
+- Object storage with appropriate access controls
+- TLS everywhere
+- Centralized monitoring and alerting
+- Backup and disaster recovery
+- Formal threat modeling
+- Security testing and penetration testing
+- Data-retention and compliance controls
+- Stronger operational controls around privileged users
+
+**Never use the demo credentials or development secrets in a production environment.**
 
 ---
 
-<p align="center">
-  <strong>CaseVault</strong> — cases, evidence, assets, and cryptographic integrity in one place.
-</p>
+## Contributing
+
+Contributions are welcome.
+
+A typical workflow:
+
+```bash
+git checkout -b feature/your-feature
+git add .
+git commit -m "feat: describe your change"
+git push origin feature/your-feature
+```
+
+Then open a pull request with:
+
+- What changed
+- Why it changed
+- How it was tested
+- Any security implications
+
+---
+
+## License
+
+No explicit open-source license is currently declared in the repository.
+
+If you intend others to reuse or distribute CaseVault, add an appropriate license file before presenting it as an open-source project.
+
+---
+
+<div align="center">
+
+**CaseVault**
+
+*Secure cases. Traceable evidence. Verifiable integrity.*
+
+</div>
