@@ -1,10 +1,11 @@
-# CaseVault
+<div align="center">
+  #CaseVault
 
-<p align="center">
+<p>
   <img src="https://img.shields.io/badge/CaseVault-Secure%20Case%20%26%20Evidence%20Platform-2563eb?style=for-the-badge" alt="CaseVault" />
 </p>
 
-<p align="center">
+<p>
   <a href="https://github.com/gnanadeep30805/CaseVault"><img src="https://img.shields.io/badge/stack-React%20%2B%20Express-0f172a?style=flat-square" alt="Stack" /></a>
   <img src="https://img.shields.io/badge/auth-JWT%20%2B%20TOTP%20MFA-16a34a?style=flat-square" alt="Auth" />
   <img src="https://img.shields.io/badge/crypto-AES--256--GCM%20%7C%20SHA3--256-7c3aed?style=flat-square" alt="Crypto" />
@@ -14,6 +15,7 @@
 **Secure digital case, evidence, and police-asset management** for investigation teams. CaseVault is a working React + Express prototype: officers can sign in, manage cases, verify document and evidence integrity, follow chain of custody, and audit every sensitive action.
 
 > Built for law-enforcement / legal workflows. Security checks run on the **server**, not only in the UI.
+</div>
 
 ---
 
