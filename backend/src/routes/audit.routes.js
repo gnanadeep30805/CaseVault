@@ -1,5 +1,5 @@
 import express from 'express';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 import { sha3Hash, verifyAuditChain } from '../services/security-core.js';
 import { readCollection } from '../services/store.js';
 
@@ -28,7 +28,7 @@ const auditLogs = [
     },
 ];
 
-router.get('/', requireAuth, async (req, res, next) => {
+router.get('/', requireAuth, requireRole('Administrator', 'Supervisor', 'Legal Officer'), async (req, res, next) => {
     try {
         res.status(200).json({ success: true, data: await readCollection('auditLogs') });
     } catch (error) {
@@ -36,7 +36,7 @@ router.get('/', requireAuth, async (req, res, next) => {
     }
 });
 
-router.post('/verify-chain', requireAuth, async (req, res, next) => {
+router.post('/verify-chain', requireAuth, requireRole('Administrator', 'Supervisor', 'Legal Officer'), async (req, res, next) => {
     try {
         const result = verifyAuditChain(await readCollection('auditLogs'));
         res.status(200).json({ success: true, data: result });

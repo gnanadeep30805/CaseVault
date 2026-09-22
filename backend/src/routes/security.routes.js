@@ -5,6 +5,7 @@ import {
     createHashChainEvent,
     getSecurityOverview,
     sha3Hash,
+    verifySignature,
     verifyAuditChain,
     verifyCustodyChain,
 } from '../services/security-core.js';
@@ -67,6 +68,8 @@ router.post('/documents/:id/verify', requireAuth, async (req, res, next) => {
                 registeredHash: sampleRegisteredHash,
                 currentHash,
                 lastVerified: new Date().toISOString(),
+                signatureAlgorithm: 'Ed25519',
+                signatureStatus: document.signature ? (verifySignature(`${document.id}:${document.registeredHash}`, document.signature) ? 'VALID' : 'INVALID') : 'UNSIGNED',
                 message: verified
                     ? 'Hash matches the registered document hash.'
                     : 'The current document does not match its registered integrity hash.',
@@ -94,7 +97,8 @@ router.post('/evidence/:id/verify', requireAuth, async (req, res, next) => {
                 registeredHash,
                 currentHash,
                 lastVerified: new Date().toISOString(),
-                signatureStatus: 'NOT_IMPLEMENTED',
+                signatureAlgorithm: 'Ed25519',
+                signatureStatus: evidence.signature ? (verifySignature(`${evidence.id}:${evidence.evidenceHash}`, evidence.signature) ? 'VALID' : 'INVALID') : 'UNSIGNED',
             },
         });
     } catch (error) {

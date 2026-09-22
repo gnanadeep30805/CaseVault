@@ -79,7 +79,7 @@ function toPublicUser(user) {
 
 function createAccessToken(user) {
     return jwt.sign(
-        { sub: user.id, email: user.email, role: user.role, department: user.department },
+           { sub: user.id, name: user.name, email: user.email, role: user.role, department: user.department },
         env.jwtAccessSecret,
         { expiresIn: '15m', algorithm: 'HS256' },
     );

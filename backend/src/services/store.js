@@ -1,7 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { sha3Hash } from './security-core.js';
+import { env } from '../config/env.js';
+import { encryptBuffer, sha3Hash, signPayload } from './security-core.js';
 
 const dataDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../data');
 const dataFile = path.join(dataDirectory, 'casevault.json');
@@ -75,8 +76,33 @@ async function ensureLoaded() {
     } catch (error) {
         if (error.code !== 'ENOENT') throw error;
         state = structuredClone(seedState);
-        await persist();
     }
+    let migrated = false;
+    for (const document of state.documents) {
+        if (!document.signature && document.registeredHash) {
+            document.signatureAlgorithm = 'Ed25519';
+            document.signature = signPayload(`${document.id}:${document.registeredHash}`);
+            document.signatureStatus = 'VALID';
+            migrated = true;
+        }
+        if (!document.encryptedContent) {
+            const encrypted = encryptBuffer(Buffer.from(document.fileName, 'utf8'), env.documentStorageKey, { keyId: 'document-storage-v1' });
+            document.encryptedContent = encrypted.encryptedData.toString('base64');
+            document.contentNonce = encrypted.nonce.toString('base64');
+            document.contentTag = encrypted.tag.toString('base64');
+            document.contentKeyId = encrypted.keyId;
+            migrated = true;
+        }
+    }
+    for (const evidence of state.evidence) {
+        if (!evidence.signature && evidence.evidenceHash) {
+            evidence.signatureAlgorithm = 'Ed25519';
+            evidence.signature = signPayload(`${evidence.id}:${evidence.evidenceHash}`);
+            evidence.signatureStatus = 'VALID';
+            migrated = true;
+        }
+    }
+    if (migrated || !(await fs.stat(dataFile).catch(() => null))) await persist();
     return state;
 }
 

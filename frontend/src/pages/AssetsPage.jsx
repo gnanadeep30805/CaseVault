@@ -72,6 +72,31 @@ export default function AssetsPage() {
         }
     }
 
+    async function assignAsset() {
+        const assignedOfficer = window.prompt('Officer or custodian');
+        const location = window.prompt('Assigned location', selected.location);
+        if (!assignedOfficer || !location) return;
+        try {
+            await api.patch(`/assets/${selected.id}/assign`, { assignedOfficer, location });
+            await loadAssets();
+            await inspectAsset({ ...selected, assignedOfficer, location, status: 'Assigned' });
+        } catch (requestError) {
+            setError(requestError?.response?.data?.error?.message || 'Unable to assign asset.');
+        }
+    }
+
+    async function returnAsset() {
+        const location = window.prompt('Return location', selected.location);
+        if (!location) return;
+        try {
+            await api.patch(`/assets/${selected.id}/return`, { location });
+            await loadAssets();
+            await inspectAsset({ ...selected, assignedOfficer: null, location, status: 'Available' });
+        } catch (requestError) {
+            setError(requestError?.response?.data?.error?.message || 'Unable to return asset.');
+        }
+    }
+
     async function scheduleMaintenance() {
         const vendor = window.prompt('Maintenance vendor');
         const scheduledDate = window.prompt('Scheduled date (YYYY-MM-DD)');
@@ -110,7 +135,7 @@ export default function AssetsPage() {
                     </tbody></table></div>
                 )}
             </div>
-            {selected && <div className="card" style={{ marginTop: 20, padding: 20 }}><div className="page-header"><h2>{selected.name}</h2><button className="btn btn-secondary" type="button" onClick={() => setSelected(null)}>Close</button></div><p className="muted">{selected.id} · {selected.status} · {selected.serial}</p><div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{transitionOptions.map((status) => <button key={status} className="btn btn-secondary" type="button" onClick={() => changeStatus(status)}>{status}</button>)}<button className="btn btn-secondary" type="button" onClick={scheduleMaintenance}>Schedule Maintenance</button>{selected.status === 'Maintenance' && <button className="btn btn-primary" type="button" onClick={completeMaintenance}>Complete Maintenance</button>}</div><h3>History</h3>{history.length === 0 ? <p className="muted">No history recorded.</p> : <ul>{history.map((event) => <li key={event.eventId}>{event.action} · {event.fromStatus} to {event.toStatus} · {event.timestamp}</li>)}</ul>}<h3>Maintenance</h3>{maintenance.length === 0 ? <p className="muted">No maintenance records.</p> : <ul>{maintenance.map((item) => <li key={item.id}>{item.vendor} · {item.status} · {item.scheduledDate}</li>)}</ul>}</div>}
+            {selected && <div className="card" style={{ marginTop: 20, padding: 20 }}><div className="page-header"><h2>{selected.name}</h2><button className="btn btn-secondary" type="button" onClick={() => setSelected(null)}>Close</button></div><p className="muted">{selected.id} · {selected.status} · {selected.serial}</p><div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{selected.status === 'Available' && <button className="btn btn-primary" type="button" onClick={assignAsset}>Assign</button>}{(selected.status === 'Assigned' || selected.status === 'Active / In Use') && <button className="btn btn-primary" type="button" onClick={returnAsset}>Return</button>}{transitionOptions.map((status) => <button key={status} className="btn btn-secondary" type="button" onClick={() => changeStatus(status)}>{status}</button>)}<button className="btn btn-secondary" type="button" onClick={scheduleMaintenance}>Schedule Maintenance</button>{selected.status === 'Maintenance' && <button className="btn btn-primary" type="button" onClick={completeMaintenance}>Complete Maintenance</button>}</div><h3>History</h3>{history.length === 0 ? <p className="muted">No history recorded.</p> : <ul>{history.map((event) => <li key={event.eventId}>{event.action} · {event.fromStatus} to {event.toStatus} · {event.timestamp}</li>)}</ul>}<h3>Maintenance</h3>{maintenance.length === 0 ? <p className="muted">No maintenance records.</p> : <ul>{maintenance.map((item) => <li key={item.id}>{item.vendor} · {item.status} · {item.scheduledDate}</li>)}</ul>}</div>}
             {open && <div className="modal-backdrop"><div className="modal" role="dialog" aria-modal="true"><h2>Register Asset</h2><form onSubmit={registerAsset}><div className="form-grid"><label className="field">Name<input className="input" required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label><label className="field">Serial number<input className="input" required value={form.serial} onChange={(event) => setForm({ ...form, serial: event.target.value })} /></label><label className="field">Category<input className="input" required value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} /></label><label className="field">Department<input className="input" required value={form.department} onChange={(event) => setForm({ ...form, department: event.target.value })} /></label><label className="field">Location<input className="input" required value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} /></label><label className="field">Condition<input className="input" value={form.condition} onChange={(event) => setForm({ ...form, condition: event.target.value })} /></label></div><div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}><button className="btn btn-secondary" type="button" onClick={() => setOpen(false)}>Cancel</button><button className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Register'}</button></div></form></div></div>}
         </div>
     );

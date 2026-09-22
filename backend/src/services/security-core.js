@@ -1,6 +1,43 @@
 import crypto from 'crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const HASH_ALGORITHM = 'sha3-256';
+const signingKeyPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../data/signing-key.json');
+let signingKeys;
+
+function getSigningKeys() {
+    if (signingKeys) return signingKeys;
+    try {
+        signingKeys = JSON.parse(fs.readFileSync(signingKeyPath, 'utf8'));
+    } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+        const generated = crypto.generateKeyPairSync('ed25519');
+        signingKeys = {
+            privateKey: generated.privateKey.export({ type: 'pkcs8', format: 'pem' }),
+            publicKey: generated.publicKey.export({ type: 'spki', format: 'pem' }),
+        };
+        fs.mkdirSync(path.dirname(signingKeyPath), { recursive: true });
+        fs.writeFileSync(signingKeyPath, JSON.stringify(signingKeys, null, 2), { mode: 0o600 });
+    }
+    return signingKeys;
+}
+
+export function signPayload(value) {
+    const payload = typeof value === 'string' ? value : JSON.stringify(value);
+    return crypto.sign(null, Buffer.from(payload), getSigningKeys().privateKey).toString('base64');
+}
+
+export function verifySignature(value, signature) {
+    if (!signature) return false;
+    const payload = typeof value === 'string' ? value : JSON.stringify(value);
+    return crypto.verify(null, Buffer.from(payload), getSigningKeys().publicKey, Buffer.from(signature, 'base64'));
+}
+
+export function getSigningPublicKey() {
+    return getSigningKeys().publicKey;
+}
 
 export function sha3Hash(value) {
     const input = typeof value === 'string' ? value : JSON.stringify(value);

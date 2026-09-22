@@ -43,6 +43,7 @@ export default function DocumentIntegrityPage() {
                         <div><strong>Algorithm:</strong> {detail.algorithm}</div>
                         <div><strong>Registered Hash:</strong> {detail.registeredHash}</div>
                         <div><strong>Current Hash:</strong> {detail.registeredHash}</div>
+                        <div><strong>Signature:</strong> {detail.signatureStatus || 'UNSIGNED'}</div>
                         <div><strong>Last Verified:</strong> {detail.lastVerified || 'Not verified yet'}</div>
                     </div>
                     <button className="btn btn-primary" style={{ marginTop: 18 }} onClick={handleVerify}>Verify Integrity</button>
@@ -55,6 +56,7 @@ export default function DocumentIntegrityPage() {
                     <div>{result.message}</div>
                     <div style={{ marginTop: 12 }}><strong>Registered Hash:</strong> {result.registeredHash}</div>
                     <div><strong>Current Hash:</strong> {result.currentHash}</div>
+                    <div><strong>Signature:</strong> {result.signatureStatus || 'UNSIGNED'}</div>
                     <div><strong>Last Verified:</strong> {result.lastVerified}</div>
                 </div>
             )}

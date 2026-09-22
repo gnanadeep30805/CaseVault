@@ -10,7 +10,10 @@ import {
   verifyAuditChain,
   verifyCustodyChain,
   evaluateAccessPolicy,
+  signPayload,
+  verifySignature,
 } from './security-core.js';
+import { canAccessResource, filterAccessibleResources } from '../middleware/auth.js';
 
 test('encryptBuffer/decryptBuffer round trip works', () => {
   const plaintext = Buffer.from('casevault-document-secret');
@@ -28,6 +31,13 @@ test('sha3 hash and HKDF produce deterministic values', () => {
 
   assert.equal(hash.length, 64);
   assert.equal(derived.length, 32);
+});
+
+test('Ed25519 signatures validate and reject tampered payloads', () => {
+  const signature = signPayload('document-hash');
+
+  assert.equal(verifySignature('document-hash', signature), true);
+  assert.equal(verifySignature('tampered-document-hash', signature), false);
 });
 
 test('merkle proofs validate and fail on tampered data', () => {
@@ -93,4 +103,17 @@ test('zero-trust policy allows authorized access and rejects background leakage'
   });
 
   assert.equal(denied.allowed, false);
+});
+
+test('resource filtering enforces department and classification boundaries', () => {
+  const investigator = { role: 'Investigation Officer', department: 'Criminal Investigation' };
+  const cases = [
+    { id: 'case-1', department: 'Criminal Investigation', classification: 'Confidential' },
+    { id: 'case-2', department: 'Cyber Crime', classification: 'Restricted' },
+  ];
+
+  assert.equal(canAccessResource(investigator, cases[0]), true);
+  assert.equal(canAccessResource(investigator, cases[1]), false);
+  assert.deepEqual(filterAccessibleResources(investigator, cases).map((item) => item.id), ['case-1']);
+  assert.equal(canAccessResource({ role: 'Administrator', department: 'Administration' }, cases[1]), true);
 });

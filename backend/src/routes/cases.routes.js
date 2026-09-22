@@ -1,5 +1,5 @@
 import express from 'express';
-import { requireAuth, requireRole } from '../middleware/auth.js';
+import { canAccessResource, filterAccessibleResources, requireAuth, requireRole } from '../middleware/auth.js';
 import { addAuditEvent, appendToCollection, readCollection, updateCollectionItem } from '../services/store.js';
 
 const router = express.Router();
@@ -20,7 +20,7 @@ router.get('/', requireAuth, async (req, res, next) => {
         const items = await readCollection('cases');
         const query = String(req.query.search || '').trim().toLowerCase();
         const status = String(req.query.status || '').trim();
-        const filtered = items.filter((item) => {
+        const filtered = filterAccessibleResources(req.user, items).filter((item) => {
             const matchesQuery = !query || [item.id, item.caseNumber, item.title, item.type].some((value) => String(value).toLowerCase().includes(query));
             return matchesQuery && (!status || item.status === status);
         });
@@ -34,6 +34,9 @@ router.post('/', requireAuth, caseWriter, async (req, res, next) => {
     const body = req.body || {};
     if (!body.caseNumber || !body.title || !body.type || !body.priority || !body.department || !body.classification) {
         return res.status(422).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Case number, title, type, priority, department, and classification are required.' } });
+    }
+    if (!canAccessResource(req.user, { department: body.department, classification: body.classification })) {
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You cannot create a case outside your authorized department or clearance.' } });
     }
     try {
         const items = await readCollection('cases');
@@ -65,7 +68,7 @@ router.post('/', requireAuth, caseWriter, async (req, res, next) => {
 
 router.get('/:id', requireAuth, async (req, res, next) => {
     try {
-        const found = (await readCollection('cases')).find((item) => item.id === req.params.id);
+        const found = filterAccessibleResources(req.user, await readCollection('cases')).find((item) => item.id === req.params.id);
         if (!found) return res.status(404).json({ success: false, error: { code: 'CASE_NOT_FOUND', message: 'Case not found.' } });
         res.status(200).json({ success: true, data: found });
     } catch (error) {

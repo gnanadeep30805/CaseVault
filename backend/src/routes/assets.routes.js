@@ -1,5 +1,5 @@
 import express from 'express';
-import { requireAuth, requireRole } from '../middleware/auth.js';
+import { filterAccessibleResources, requireAuth, requireRole } from '../middleware/auth.js';
 import { addAuditEvent, appendChronological, appendToCollection, readCollection, updateCollectionItem } from '../services/store.js';
 
 const router = express.Router();
@@ -31,7 +31,7 @@ router.get('/', requireAuth, async (req, res, next) => {
     try {
         const items = await readCollection('assets');
         const query = String(req.query.search || '').trim().toLowerCase();
-        const data = items.filter((item) => !query || [item.id, item.name, item.serial, item.department].some((value) => String(value).toLowerCase().includes(query)));
+        const data = filterAccessibleResources(req.user, items).filter((item) => !query || [item.id, item.name, item.serial, item.department].some((value) => String(value).toLowerCase().includes(query)));
         res.json({ success: true, data });
     } catch (error) {
         next(error);

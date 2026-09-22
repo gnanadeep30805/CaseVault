@@ -1,6 +1,6 @@
 import express from 'express';
-import { requireAuth, requireRole } from '../middleware/auth.js';
-import { sha3Hash, verifyCustodyChain } from '../services/security-core.js';
+import { canAccessResource, filterAccessibleResources, requireAuth, requireRole } from '../middleware/auth.js';
+import { sha3Hash, signPayload, verifyCustodyChain, verifySignature } from '../services/security-core.js';
 import { addAuditEvent, appendChronological, appendToCollection, readCollection, updateCollectionItem } from '../services/store.js';
 
 const router = express.Router();
@@ -27,9 +27,14 @@ function createCustodyHash(event) {
     }));
 }
 
+function evidenceSignaturePayload(evidence) {
+    return `${evidence.id}:${evidence.evidenceHash}`;
+}
+
 router.get('/', requireAuth, async (req, res, next) => {
     try {
-        res.status(200).json({ success: true, data: await readCollection('evidence') });
+        const cases = new Map((await readCollection('cases')).map((item) => [item.id, item]));
+        res.status(200).json({ success: true, data: filterAccessibleResources(req.user, await readCollection('evidence'), cases) });
     } catch (error) {
         next(error);
     }
@@ -41,6 +46,9 @@ router.post('/', requireAuth, evidenceWriter, async (req, res, next) => {
         return res.status(422).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Case, type, description, collection date, and collector are required.' } });
     }
     try {
+        const relatedCase = (await readCollection('cases')).find((item) => item.id === body.caseId);
+        if (!relatedCase) return res.status(404).json({ success: false, error: { code: 'CASE_NOT_FOUND', message: 'Case not found.' } });
+        if (!canAccessResource(req.user, { classification: relatedCase.classification }, relatedCase)) return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You cannot add evidence to this case.' } });
         const evidenceId = `EV-${Date.now()}`;
         const evidenceItem = {
             id: evidenceId,
@@ -58,6 +66,9 @@ router.post('/', requireAuth, evidenceWriter, async (req, res, next) => {
             registeredAt: new Date().toISOString(),
             currentVerificationState: 'PENDING',
         };
+        evidenceItem.signatureAlgorithm = 'Ed25519';
+        evidenceItem.signature = signPayload(evidenceSignaturePayload(evidenceItem));
+        evidenceItem.signatureStatus = 'VALID';
         await appendToCollection('evidence', evidenceItem);
         await addAuditEvent({ actor: req.user.id, action: 'EVIDENCE_REGISTERED', resource: 'Evidence', resourceId: evidenceItem.id });
         res.status(201).json({ success: true, data: evidenceItem });
@@ -68,8 +79,11 @@ router.post('/', requireAuth, evidenceWriter, async (req, res, next) => {
 
 router.get('/:id', requireAuth, async (req, res, next) => {
     try {
-        const found = (await readCollection('evidence')).find((item) => item.id === req.params.id);
+        const evidence = await readCollection('evidence');
+        const found = evidence.find((item) => item.id === req.params.id);
         if (!found) return res.status(404).json({ success: false, error: { code: 'EVIDENCE_NOT_FOUND', message: 'Evidence not found.' } });
+        const relatedCase = (await readCollection('cases')).find((item) => item.id === found.caseId);
+        if (!canAccessResource(req.user, found, relatedCase)) return res.status(404).json({ success: false, error: { code: 'EVIDENCE_NOT_FOUND', message: 'Evidence not found.' } });
         res.status(200).json({ success: true, data: found });
     } catch (error) {
         next(error);
@@ -83,7 +97,9 @@ router.post('/:id/verify', requireAuth, async (req, res, next) => {
         const currentHash = createEvidenceHash(found);
         const legacyHash = createLegacyEvidenceHash(found);
         const verified = found.evidenceHash === currentHash || found.evidenceHash === legacyHash;
-        await updateCollectionItem('evidence', found.id, { currentVerificationState: verified ? 'VERIFIED' : 'COMPROMISED' });
+        const signatureValid = verifySignature(evidenceSignaturePayload(found), found.signature);
+        const signatureStatus = found.signature ? (signatureValid ? 'VALID' : 'INVALID') : 'UNSIGNED';
+        await updateCollectionItem('evidence', found.id, { currentVerificationState: verified ? 'VERIFIED' : 'COMPROMISED', signatureStatus });
         await addAuditEvent({ actor: req.user.id, action: 'EVIDENCE_INTEGRITY_VERIFIED', resource: 'Evidence', resourceId: found.id, metadata: { verified } });
         res.status(200).json({
             success: true,
@@ -94,7 +110,8 @@ router.post('/:id/verify', requireAuth, async (req, res, next) => {
                 registeredHash: found.evidenceHash,
                 currentHash: found.evidenceHash === legacyHash ? legacyHash : currentHash,
                 lastVerified: new Date().toISOString(),
-                signatureStatus: 'NOT_IMPLEMENTED',
+                signatureAlgorithm: 'Ed25519',
+                signatureStatus,
                 message: verified ? 'The current evidence record matches its registered integrity hash.' : 'The current evidence does not match its registered integrity hash.',
             },
         });

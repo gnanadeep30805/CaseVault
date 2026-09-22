@@ -8,6 +8,7 @@ export const env = {
     databaseUrl: process.env.DATABASE_URL || 'postgresql://casevault:casevault@localhost:5432/casevault',
     jwtAccessSecret: process.env.JWT_ACCESS_SECRET || 'dev_access_secret_change_me',
     jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'dev_refresh_secret_change_me',
+    documentStorageKey: process.env.DOCUMENT_STORAGE_KEY || 'dev_document_storage_key_change_me',
     mfaSecret: process.env.MFA_SECRET || 'JBSWY3DPEHPK3PXP',
     devPasswordHash: process.env.DEV_PASSWORD_HASH || '$2b$12$/ordMkXGm.tJ.BCpXwOCy.SoXTrXMYOxFd4MRy3dL/WivS1sGceRG',
     allowDemoMfa: process.env.ALLOW_DEMO_MFA !== 'false' && (process.env.NODE_ENV || 'development') !== 'production',
