@@ -7,7 +7,7 @@ import { Input } from '../components/ui/Form.jsx';
 import { InlineError } from '../components/ui/States.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useDocumentTitle } from '../hooks/useResource.js';
-import { apiErrorMessage } from '../lib/apiClient.js';
+import { apiErrorCode, apiErrorMessage } from '../lib/apiClient.js';
 
 export default function LoginPage() {
     const { login, verifyMfa, fetchDemoCode } = useAuth();
@@ -31,9 +31,26 @@ export default function LoginPage() {
         setError('');
         setPending(true);
         try {
-            const result = challenge
-                ? await verifyMfa({ identifier, password, otp, challengeId: challenge.challengeId })
-                : await login({ identifier: identifier.trim(), password });
+            if (challenge) {
+                try {
+                    const result = await verifyMfa({ identifier, password, otp, challengeId: challenge.challengeId });
+                    if (result?.requiresMfa) {
+                        setChallenge({ challengeId: result.challengeId, expiresAt: result.expiresAt });
+                        return;
+                    }
+                    navigate(destination, { replace: true });
+                    return;
+                } catch (caught) {
+                    if (apiErrorCode(caught) !== 'INVALID_MFA_CHALLENGE') throw caught;
+                    const refreshed = await login({ identifier: identifier.trim(), password });
+                    setChallenge({ challengeId: refreshed.challengeId, expiresAt: refreshed.expiresAt });
+                    setOtp('');
+                    setDemoCode('');
+                    setError('That MFA session expired. A new one has been started — get a fresh code below and enter it.');
+                    return;
+                }
+            }
+            const result = await login({ identifier: identifier.trim(), password });
             if (result?.requiresMfa) {
                 setChallenge({ challengeId: result.challengeId, expiresAt: result.expiresAt });
                 return;
@@ -115,6 +132,11 @@ export default function LoginPage() {
                             Get development MFA code
                         </Button>
                         {demoCode ? <p className="text-xs font-semibold text-linkblue-500">{demoCode}</p> : null}
+                        {demoCode ? (
+                            <p className="text-xs text-ink-500 dark:text-ink-400">
+                                Codes rotate every 30 seconds. If verification is rejected, request a new code and submit it straight away.
+                            </p>
+                        ) : null}
                         <button
                             type="button"
                             className="cv-link text-xs"

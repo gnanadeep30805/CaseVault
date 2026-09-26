@@ -173,12 +173,12 @@ export async function loginUser({ identifier, password, otp, mfaCode, challengeI
                 await recordFailedLogin(identifier, 'MFA_CHALLENGE_INVALID', { userId: user.id });
                 throw accessError('INVALID_MFA_CHALLENGE', 'The MFA challenge is invalid or expired.');
             }
-            mfaChallenges.delete(challengeId);
         }
         if (!isValidOtp(otp || mfaCode, user)) {
             await recordFailedLogin(identifier, 'MFA_FAILED', { userId: user.id });
             throw accessError('INVALID_MFA', 'Invalid MFA code.');
         }
+        if (challengeId) mfaChallenges.delete(challengeId);
     }
     user.lastLogin = new Date().toISOString();
     await updateCollectionItem('users', user.id, { lastLogin: user.lastLogin });

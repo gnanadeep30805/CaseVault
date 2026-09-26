@@ -86,6 +86,15 @@ try {
     }
 
     await call('POST', '/auth/login', { body: { identifier: 'disabled@casevault.local', password: PASSWORD }, expect: 403 });
+    const mfaChallenge = await call('POST', '/auth/login', { body: { identifier: 'admin@casevault.local', password: PASSWORD }, expect: 200 });
+    const challengeId = mfaChallenge.data?.challengeId;
+    if (challengeId) {
+        await call('POST', '/auth/verify-mfa', { body: { identifier: 'admin@casevault.local', password: PASSWORD, otp: '000000', challengeId }, expect: 401 });
+        const retryCode = await call('POST', '/auth/demo-code', { body: { identifier: 'admin@casevault.local', password: PASSWORD }, expect: 200 });
+        const retried = await call('POST', '/auth/verify-mfa', { body: { identifier: 'admin@casevault.local', password: PASSWORD, otp: retryCode.data.code, challengeId }, expect: 200 });
+        expectTrue(Boolean(retried.data?.tokens?.accessToken), 'a mistyped MFA code consumed the challenge, so a valid retry was rejected');
+        await call('POST', '/auth/verify-mfa', { body: { identifier: 'admin@casevault.local', password: PASSWORD, otp: retryCode.data.code, challengeId }, expect: 401 });
+    }
     await call('POST', '/auth/login', { body: { identifier: 'admin@casevault.local', password: 'wrong-password' }, expect: 401 });
     await call('GET', '/cases', { expect: 401 });
     await call('GET', '/cases', { token: 'not-a-token', expect: 401 });
