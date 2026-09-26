@@ -26,5 +26,8 @@
     },
     "optionalDependencies": {
         "nodemailer": "^10.0.10"
+    },
+    "allowScripts": {
+        "bcrypt": true
     }
 }

@@ -564,6 +564,40 @@ Copy-Item .env.example backend/.env
 
 Review the values in `backend/.env` before running the application.
 
+> **`.env` is optional.** Every value in `backend/src/config/env.js` has a
+> development fallback, so the stack runs with no `.env` at all. Copying the
+> example is only needed to change ports, secrets, SMTP, or upload limits.
+
+#### Native dependencies
+
+`bcrypt` and `esbuild` require install scripts to fetch or build their
+platform binary. npm 11 and later block install scripts by default, so both
+packages declare an `allowScripts` entry in their `package.json`:
+
+```json
+"allowScripts": { "bcrypt": true }
+```
+
+This is what allows `npm install` to run them without a warning. If you ever
+see this on install, the script is not covered yet:
+
+```text
+npm warn allow-scripts  1 package has install scripts not yet covered by allowScripts
+```
+
+Approve it from the affected package directory:
+
+```bash
+cd backend   && npm approve-scripts --no-allow-scripts-pin bcrypt
+cd frontend  && npm approve-scripts --no-allow-scripts-pin esbuild
+```
+
+Use `--no-allow-scripts-pin` so the entry tracks the package name rather than
+`name@version`; a pinned entry silently stops matching after a version bump.
+A blocked script usually surfaces later as a native-module error such as
+`Could not locate the bindings file`, or as a Vite build that fails on a
+missing esbuild binary.
+
 ### 3. Start the backend
 
 ```bash
