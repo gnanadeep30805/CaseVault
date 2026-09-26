@@ -271,23 +271,40 @@ The important distinction is that **document integrity can be verified independe
 
 ### Asset Management
 
-CaseVault also manages department assets such as operational equipment.
-
-The asset lifecycle can be represented as:
+CaseVault also manages department assets such as operational equipment:
+vehicles, bikes, laptops, cameras, radios, drones, GPS units and forensic
+equipment. The full lifecycle is:
 
 ```text
-Available
+Purchase
    ↓
-Assigned
+Register
+   ↓
+Assign to Officer/Station
+   ↓
+Use
    ↓
 Maintenance
    ↓
-Available
+Transfer
    ↓
-Retired
+Retire/Dispose
 ```
 
-This provides a single place to track operational assets alongside investigation workflows.
+Each transition is validated against a state machine, so illegal jumps are
+rejected, and status changes require a reason. For example, vehicle `V102`:
+
+| Field | Value |
+| --- | --- |
+| Purchased | 2025 (vendor, cost, warranty) |
+| Assigned | Police Station A, Officer Ravi |
+| Maintenance | August 2026 |
+| Transferred | Police Station B |
+| Status | Active / In Use |
+
+Every step writes both an `assetHistory` entry and an audit event, so a single
+asset can be reconstructed end to end. This provides a single place to track
+operational assets alongside investigation workflows.
 
 ---
 
