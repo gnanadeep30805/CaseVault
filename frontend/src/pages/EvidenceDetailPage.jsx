@@ -68,7 +68,8 @@ export default function EvidenceDetailPage() {
             const result = await api.post(`/evidence/${encodeURIComponent(id)}/verify`).then(unwrap);
             setVerification(result);
             setTab('integrity');
-            toast.success(result.status === 'VERIFIED' ? 'Evidence integrity verified.' : 'Integrity mismatch detected.');
+            if (result.status === 'VERIFIED') toast.success('Evidence integrity verified.');
+            else toast.error('Integrity mismatch detected: the evidence no longer matches its registered hash.');
             evidence.reload();
         } catch (error) {
             toast.error(apiErrorMessage(error, 'Verification failed.'));

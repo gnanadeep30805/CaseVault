@@ -1,12 +1,13 @@
 import express from 'express';
 import multer from 'multer';
 import crypto from 'node:crypto';
+import fs from 'node:fs/promises';
 import { env } from '../config/env.js';
 import { requireAuth, requireRole, requirePermission } from '../middleware/auth.js';
 import { canAccessResource, clearanceForUser, findDocumentForUser, hasPermission } from '../services/authorization.service.js';
 import { HASH_ALGORITHM, sha256Hash, signPayload, verifySignature } from '../services/security-core.js';
 import { getUploadPayload, readEncryptedDocument, saveEncryptedDocument, toPublicDocument } from '../services/document-storage.service.js';
-import { addAuditEvent, addNotification, addTimelineEvent, appendToCollection, readCollection, updateCollectionItem } from '../services/store.js';
+import { addAuditEvent, addNotification, addTimelineEvent, appendToCollection, getSecureStoragePath, readCollection, updateCollectionItem } from '../services/store.js';
 import { asyncRoute, sendData, sendError, textValue } from '../utils/route-helpers.js';
 
 const router = express.Router();
@@ -353,13 +354,37 @@ router.post('/:id/signature/reject', requireAuth, asyncRoute(async (req, res) =>
     return respondToSignature(req, res, 'Rejected');
 }));
 
+async function secureStorageFileExists(storageFile) {
+    try {
+        await fs.access(getSecureStoragePath(storageFile));
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 async function verifyDocumentIntegrity(req, res) {
     const { document } = await documentContext(req);
     let content;
     try {
         content = await readEncryptedDocument(document);
     } catch {
-        return sendError(res, 410, 'DOCUMENT_CONTENT_UNAVAILABLE', 'Stored document content is unavailable.');
+        const stored = document.storageFile && await secureStorageFileExists(document.storageFile);
+        if (!stored) return sendError(res, 410, 'DOCUMENT_CONTENT_UNAVAILABLE', 'Stored document content is unavailable.');
+        const checkedAt = new Date().toISOString();
+        await updateCollectionItem('documents', document.id, { integrityStatus: 'COMPROMISED', lastVerified: checkedAt, lastComputedHash: null });
+        await addAuditEvent({ actor: req.user.id, action: 'DOCUMENT_TAMPER_DETECTED', resource: 'Document', resourceId: document.id, metadata: { verified: false, algorithm: HASH_ALGORITHM, reason: 'Authenticated decryption failed; stored ciphertext no longer matches its AES-256-GCM tag.' } });
+        return sendData(res, {
+            documentId: document.id,
+            integrityStatus: 'COMPROMISED',
+            algorithm: HASH_ALGORITHM,
+            registeredHash: document.registeredHash,
+            currentHash: null,
+            signatureAlgorithm: 'Ed25519',
+            signatureStatus: 'UNVERIFIABLE',
+            lastVerified: checkedAt,
+            message: 'The stored document failed authenticated decryption. Its ciphertext was modified after registration, so the document is treated as tampered.',
+        });
     }
     const currentHash = sha256Hash(content);
     const verified = currentHash === document.registeredHash;

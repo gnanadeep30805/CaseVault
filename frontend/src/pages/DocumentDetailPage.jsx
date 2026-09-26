@@ -119,7 +119,24 @@ export default function DocumentDetailPage() {
         }
     };
 
-    const verify = () => run('verify', () => api.post(`/documents/${encodeURIComponent(id)}/verify`).then(unwrap), 'Integrity re-verified against the stored ciphertext.');
+    const verify = async () => {
+        setBusy('verify');
+        try {
+            const result = await api.post(`/documents/${encodeURIComponent(id)}/verify`).then(unwrap);
+            if (result?.integrityStatus === 'COMPROMISED') {
+                toast.error(result.message || 'Integrity check failed: the stored document was modified after registration.');
+            } else {
+                toast.success('Integrity re-verified against the stored ciphertext.');
+            }
+            await document.reload();
+            return result;
+        } catch (error) {
+            toast.error(apiErrorMessage(error));
+            throw error;
+        } finally {
+            setBusy('');
+        }
+    };
 
     const download = async () => {
         setBusy('download');

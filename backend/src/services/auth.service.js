@@ -11,6 +11,8 @@ const passwordResetTokens = new Map();
 const fallbackPasswordHash = '$2b$12$/ordMkXGm.tJ.BCpXwOCy.SoXTrXMYOxFd4MRy3dL/WivS1sGceRG';
 const resetTokenTtlMs = 15 * 60 * 1000;
 
+authenticator.options = { window: 1 };
+
 function passwordPolicyError(message) {
     return accessError('WEAK_PASSWORD', message, 422);
 }

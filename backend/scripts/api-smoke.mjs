@@ -1,4 +1,4 @@
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -230,9 +230,27 @@ try {
         file: { name: 'multipart-statement.txt', type: 'text/plain', content: 'Multipart upload smoke content.' },
     });
     if (uploaded.data?.id) {
-        await call('GET', `/documents/${uploaded.data.id}/content`, { token: investigator, expect: 200 });
-        await call('POST', `/documents/${uploaded.data.id}/verify`, { token: investigator, expect: 200 });
-        await call('GET', `/documents/${uploaded.data.id}/download`, { token: investigator, expect: 200 });
+        const tamperedId = uploaded.data.id;
+        const cleanVerify = await call('POST', `/documents/${tamperedId}/verify`, { token: investigator, expect: 200 });
+        expectTrue(cleanVerify.data?.integrityStatus === 'VERIFIED', `untouched document verified as ${cleanVerify.data?.integrityStatus} instead of VERIFIED`);
+        expectTrue(cleanVerify.data?.algorithm === 'SHA-256', `integrity check reported ${cleanVerify.data?.algorithm} instead of SHA-256`);
+        expectTrue(cleanVerify.data?.registeredHash === cleanVerify.data?.currentHash, 'integrity check reported a hash mismatch on an untouched document');
+
+        const storagePath = join(process.env.CASEVAULT_STORAGE_DIRECTORY, `${String(tamperedId).replace(/[^a-zA-Z0-9_-]/g, '_')}.cvault`);
+        const originalCipher = await readFile(storagePath);
+        const tamperedCipher = Buffer.from(originalCipher);
+        tamperedCipher[tamperedCipher.length - 1] ^= 0xff;
+        await writeFile(storagePath, tamperedCipher);
+        const tamperVerify = await call('POST', `/documents/${tamperedId}/verify`, { token: investigator, expect: 200 });
+        expectTrue(tamperVerify.data?.integrityStatus === 'COMPROMISED', `tampered document verified as ${tamperVerify.data?.integrityStatus} instead of COMPROMISED`);
+        await call('GET', `/documents/${tamperedId}/content`, { token: investigator, expect: 410 });
+        const tamperAudit = await call('GET', '/audit?action=DOCUMENT_TAMPER_DETECTED', { token: admin, expect: 200 });
+        expectTrue((tamperAudit.data || []).some((item) => item.resourceId === tamperedId), 'tampering produced no DOCUMENT_TAMPER_DETECTED audit event');
+        const securityAlerts = await call('GET', '/security/events', { token: admin, expect: 200 });
+        expectTrue(JSON.stringify(securityAlerts.data || {}).includes(tamperedId), 'tampering left no trace in the security event stream');
+        await writeFile(storagePath, originalCipher);
+        const restoredVerify = await call('POST', `/documents/${tamperedId}/verify`, { token: investigator, expect: 200 });
+        expectTrue(restoredVerify.data?.integrityStatus === 'VERIFIED', `restored document verified as ${restoredVerify.data?.integrityStatus} instead of VERIFIED`);
     }
     await callMultipart('/documents/upload', {
         token: investigator,
@@ -273,6 +291,67 @@ try {
         await call('POST', `/evidence/${createdEvidence.data.id}/verify`, { token: investigator, expect: 200 });
     }
     await call('POST', '/evidence', { token: investigator, body: { caseId: 'case-missing', type: 'Digital', description: 'x', collectionDate: '2026-02-01', collectedBy: 'y' }, expect: 404 });
+
+    const assetSerial = `SMOKE-${Date.now()}`;
+    const createdAsset = await call('POST', '/assets', {
+        token: supervisor,
+        body: { name: 'Smoke Patrol Vehicle', category: 'Vehicle', serial: assetSerial, department: 'Operations', location: 'Central Station', condition: 'Good' },
+        expect: 201,
+    });
+    const assetId = createdAsset.data?.id;
+    expectTrue(createdAsset.data?.status === 'Available', `new asset started in status ${createdAsset.data?.status} instead of Available`);
+    await call('POST', '/assets', { token: supervisor, body: { name: 'Duplicate Serial', category: 'Vehicle', serial: assetSerial, department: 'Operations', location: 'Central Station' }, expect: 409 });
+    await call('POST', '/assets', { token: supervisor, body: { name: 'Incomplete Asset', category: 'Vehicle' }, expect: 422 });
+    await call('POST', '/assets', { token: investigator, body: { name: 'Unauthorized Asset', category: 'Vehicle', serial: `${assetSerial}-X`, department: 'Operations', location: 'Central Station' }, expect: 403 });
+    await call('GET', '/assets', { expect: 401 });
+    if (assetId) {
+        await call('PATCH', `/assets/${assetId}/assign`, { token: supervisor, body: { assignedOfficer: 'u-investigator' }, expect: 422 });
+        await call('PATCH', `/assets/${assetId}/assign`, { token: supervisor, body: { assignedOfficer: 'u-investigator', location: 'North Precinct' }, expect: 200 });
+        await call('PATCH', `/assets/${assetId}/assign`, { token: supervisor, body: { assignedOfficer: 'u-analyst', location: 'South Precinct' }, expect: 409 });
+        const assetHistory = await call('GET', `/assets/${assetId}/history`, { token: supervisor, expect: 200 });
+        expectTrue(assetHistory.data?.some((item) => item.action === 'ASSET_REGISTERED'), 'asset history is missing the registration event');
+        expectTrue(assetHistory.data?.some((item) => item.action === 'ASSET_ASSIGNED'), 'asset history is missing the assignment event');
+        await call('PATCH', `/assets/${assetId}/status`, { token: supervisor, body: { status: 'Retired' }, expect: 422 });
+        await call('PATCH', `/assets/${assetId}/status`, { token: supervisor, body: { status: 'Disposed' }, expect: 409 });
+        await call('PATCH', `/assets/${assetId}/status`, { token: supervisor, body: { status: 'Retired', reason: 'End of service life' }, expect: 200 });
+        await call('PATCH', `/assets/${assetId}/status`, { token: supervisor, body: { status: 'Disposed', reason: 'Auctioned' }, expect: 200 });
+        await call('PATCH', `/assets/${assetId}/status`, { token: supervisor, body: { status: 'Available', reason: 'Reinstatement attempt' }, expect: 409 });
+    }
+    await call('GET', '/assets/AS-missing/history', { token: supervisor, expect: 404 });
+
+    const serviceSerial = `${assetSerial}-CAM`;
+    const serviceAsset = await call('POST', '/assets', {
+        token: supervisor,
+        body: { name: 'Smoke Body Camera', category: 'Camera', serial: serviceSerial, department: 'Operations', location: 'Evidence Locker' },
+        expect: 201,
+    });
+    const serviceAssetId = serviceAsset.data?.id;
+    if (serviceAssetId) {
+        await call('POST', `/assets/${serviceAssetId}/maintenance`, { token: supervisor, body: { vendor: 'Vendor' }, expect: 422 });
+        await call('PATCH', `/assets/${serviceAssetId}/maintenance/complete`, { token: supervisor, expect: 409 });
+        const maintenance = await call('POST', `/assets/${serviceAssetId}/maintenance`, { token: supervisor, body: { scheduledDate: '2026-08-14', vendor: 'SafeVision Services', notes: 'Lens calibration', estimatedCost: 4200 }, expect: 201 });
+        expectTrue(maintenance.data?.status === 'SCHEDULED', `maintenance record started as ${maintenance.data?.status} instead of SCHEDULED`);
+        await call('GET', `/assets/${serviceAssetId}/maintenance`, { token: supervisor, expect: 200 });
+        await call('POST', `/assets/${serviceAssetId}/maintenance`, { token: supervisor, body: { scheduledDate: '2026-08-20', vendor: 'Duplicate Vendor' }, expect: 409 });
+        const completed = await call('PATCH', `/assets/${serviceAssetId}/maintenance/complete`, { token: supervisor, body: { actualCost: 4500, condition: 'Excellent' }, expect: 200 });
+        expectTrue(completed.data?.asset?.status === 'Available', `asset stayed in ${completed.data?.asset?.status} after maintenance instead of returning to Available`);
+        expectTrue(completed.data?.maintenance?.status === 'COMPLETED', 'maintenance record was not marked COMPLETED');
+        await call('PATCH', `/assets/${serviceAssetId}/assign`, { token: supervisor, body: { assignedOfficer: 'u-supervisor', location: 'Patrol Bay 3' }, expect: 200 });
+        const returned = await call('PATCH', `/assets/${serviceAssetId}/return`, { token: supervisor, body: { location: 'Equipment Room' }, expect: 200 });
+        expectTrue(returned.data?.status === 'Available' && !returned.data?.assignedOfficer, 'asset return did not clear the assigned officer and restore Available');
+        await call('PATCH', `/assets/${serviceAssetId}/return`, { token: supervisor, expect: 409 });
+        const finalHistory = await call('GET', `/assets/${serviceAssetId}/history`, { token: supervisor, expect: 200 });
+        for (const action of ['ASSET_REGISTERED', 'MAINTENANCE_SCHEDULED', 'MAINTENANCE_COMPLETED', 'ASSET_ASSIGNED', 'ASSET_RETURNED']) {
+            expectTrue(finalHistory.data?.some((item) => item.action === action), `asset lifecycle history is missing ${action}`);
+        }
+        const filteredAssets = await call('GET', '/assets?search=Body%20Camera', { token: supervisor, expect: 200 });
+        expectTrue(filteredAssets.data?.every((item) => String(item.name).includes('Body Camera')), 'asset search filter returned unrelated records');
+    }
+    const assetAudit = await call('GET', '/audit?limit=500', { token: admin, expect: 200 });
+    const auditedActions = (assetAudit.data?.items || assetAudit.data || []).map((item) => item.action);
+    for (const action of ['ASSET_REGISTERED', 'ASSET_ASSIGNED', 'ASSET_STATUS_CHANGED', 'ASSET_MAINTENANCE_SCHEDULED', 'ASSET_MAINTENANCE_COMPLETED']) {
+        expectTrue(auditedActions.includes(action), `audit trail is missing ${action}`);
+    }
 
     const createdCase = await call('POST', '/cases', { token: investigator, body: { caseNumber: 'CV-2026-777', title: 'Smoke Test Case', type: 'Financial Crime', priority: 'High' }, expect: 201 });
     const createdCaseId = createdCase.data?.id;
