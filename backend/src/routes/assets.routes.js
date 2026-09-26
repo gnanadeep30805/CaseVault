@@ -43,6 +43,9 @@ router.post('/', requireAuth, assetWriter, async (req, res, next) => {
     if (!body.name || !body.category || !body.serial || !body.department || !body.location) {
         return res.status(422).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Name, category, serial, department, and location are required.' } });
     }
+    if (body.purchaseDate && Number.isNaN(new Date(body.purchaseDate).getTime())) {
+        return res.status(422).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Purchase date must be a valid date.' } });
+    }
     try {
         const items = await readCollection('assets');
         if (items.some((item) => item.serial === body.serial)) return res.status(409).json({ success: false, error: { code: 'DUPLICATE_ASSET', message: 'Asset serial number already exists.' } });
@@ -56,12 +59,37 @@ router.post('/', requireAuth, assetWriter, async (req, res, next) => {
             location: body.location,
             condition: body.condition || 'Good',
             status: 'Available',
+            purchaseDate: body.purchaseDate || null,
+            vendor: body.vendor || null,
+            purchaseCost: body.purchaseCost === undefined || body.purchaseCost === null || body.purchaseCost === '' ? null : Number(body.purchaseCost),
+            warrantyExpiry: body.warrantyExpiry || null,
+            notes: body.notes || null,
             createdAt: new Date().toISOString(),
         };
         await appendToCollection('assets', asset);
+        await recordAssetEvent(asset, req.user.id, 'ASSET_PURCHASED', { toStatus: asset.status, purchaseDate: asset.purchaseDate, vendor: asset.vendor, purchaseCost: asset.purchaseCost });
         await recordAssetEvent(asset, req.user.id, 'ASSET_REGISTERED', { toStatus: asset.status });
+        await addAuditEvent({ actor: req.user.id, action: 'ASSET_PURCHASED', resource: 'Asset', resourceId: asset.id, metadata: { purchaseDate: asset.purchaseDate, vendor: asset.vendor, purchaseCost: asset.purchaseCost } });
         await addAuditEvent({ actor: req.user.id, action: 'ASSET_REGISTERED', resource: 'Asset', resourceId: asset.id });
         res.status(201).json({ success: true, data: asset });
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.patch('/:id/transfer', requireAuth, assetWriter, async (req, res, next) => {
+    const { department, location, reason, assignedOfficer } = req.body || {};
+    if (!department || !location || !reason) return res.status(422).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Department, location, and a transfer reason are required.' } });
+    try {
+        const asset = (await readCollection('assets')).find((item) => item.id === req.params.id);
+        if (!asset) return res.status(404).json({ success: false, error: { code: 'ASSET_NOT_FOUND', message: 'Asset not found.' } });
+        if (asset.status === 'Disposed') return res.status(409).json({ success: false, error: { code: 'INVALID_ASSET_STATE', message: 'A disposed asset cannot be transferred.' } });
+        const previousDepartment = asset.department;
+        const previousLocation = asset.location;
+        const updated = await updateCollectionItem('assets', asset.id, { department, location, ...(assignedOfficer === undefined ? {} : { assignedOfficer }) });
+        await recordAssetEvent(asset, req.user.id, 'ASSET_TRANSFERRED', { reason, fromDepartment: previousDepartment, toDepartment: department, fromLocation: previousLocation, toLocation: location });
+        await addAuditEvent({ actor: req.user.id, action: 'ASSET_TRANSFERRED', resource: 'Asset', resourceId: asset.id, metadata: { fromDepartment: previousDepartment, toDepartment: department, fromLocation: previousLocation, toLocation: location, reason } });
+        res.json({ success: true, data: updated });
     } catch (error) {
         next(error);
     }

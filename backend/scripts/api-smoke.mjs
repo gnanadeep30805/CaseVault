@@ -295,16 +295,28 @@ try {
     const assetSerial = `SMOKE-${Date.now()}`;
     const createdAsset = await call('POST', '/assets', {
         token: supervisor,
-        body: { name: 'Smoke Patrol Vehicle', category: 'Vehicle', serial: assetSerial, department: 'Operations', location: 'Central Station', condition: 'Good' },
+        body: { name: 'Smoke Patrol Vehicle', category: 'Vehicle', serial: assetSerial, department: 'Operations', location: 'Central Station', condition: 'Good', purchaseDate: '2025-03-11', vendor: 'Meridian Motors', purchaseCost: 4800000, warrantyExpiry: '2028-03-11' },
         expect: 201,
     });
     const assetId = createdAsset.data?.id;
     expectTrue(createdAsset.data?.status === 'Available', `new asset started in status ${createdAsset.data?.status} instead of Available`);
+    expectTrue(createdAsset.data?.purchaseDate === '2025-03-11', 'asset purchase date was not persisted');
+    expectTrue(createdAsset.data?.purchaseCost === 4800000, 'asset purchase cost was not persisted as a number');
+    await call('POST', '/assets', { token: supervisor, body: { name: 'Bad Date', category: 'Vehicle', serial: `${assetSerial}-D`, department: 'Operations', location: 'X', purchaseDate: 'not-a-date' }, expect: 422 });
     await call('POST', '/assets', { token: supervisor, body: { name: 'Duplicate Serial', category: 'Vehicle', serial: assetSerial, department: 'Operations', location: 'Central Station' }, expect: 409 });
     await call('POST', '/assets', { token: supervisor, body: { name: 'Incomplete Asset', category: 'Vehicle' }, expect: 422 });
     await call('POST', '/assets', { token: investigator, body: { name: 'Unauthorized Asset', category: 'Vehicle', serial: `${assetSerial}-X`, department: 'Operations', location: 'Central Station' }, expect: 403 });
     await call('GET', '/assets', { expect: 401 });
     if (assetId) {
+        const purchaseHistory = await call('GET', `/assets/${assetId}/history`, { token: supervisor, expect: 200 });
+        expectTrue(purchaseHistory.data?.some((item) => item.action === 'ASSET_PURCHASED'), 'asset history is missing the purchase event');
+        await call('PATCH', `/assets/${assetId}/transfer`, { token: supervisor, body: { department: 'Operations', location: 'North Precinct' }, expect: 422 });
+        await call('PATCH', `/assets/${assetId}/transfer`, { token: supervisor, body: { department: 'Traffic', location: 'Highway Patrol Station', reason: 'Rebalanced to the highway unit' }, expect: 200 });
+        const transferHistory = await call('GET', `/assets/${assetId}/history`, { token: supervisor, expect: 200 });
+        const transferEvent = transferHistory.data?.find((item) => item.action === 'ASSET_TRANSFERRED');
+        expectTrue(Boolean(transferEvent), 'asset history is missing the transfer event');
+        expectTrue(transferEvent?.metadata?.fromDepartment === 'Operations' && transferEvent?.metadata?.toDepartment === 'Traffic', 'transfer event did not record the previous and new station');
+        await call('PATCH', `/assets/${assetId}/transfer`, { token: investigator, body: { department: 'Forensics', location: 'Lab', reason: 'Unauthorized' }, expect: 403 });
         await call('PATCH', `/assets/${assetId}/assign`, { token: supervisor, body: { assignedOfficer: 'u-investigator' }, expect: 422 });
         await call('PATCH', `/assets/${assetId}/assign`, { token: supervisor, body: { assignedOfficer: 'u-investigator', location: 'North Precinct' }, expect: 200 });
         await call('PATCH', `/assets/${assetId}/assign`, { token: supervisor, body: { assignedOfficer: 'u-analyst', location: 'South Precinct' }, expect: 409 });
@@ -314,10 +326,14 @@ try {
         await call('PATCH', `/assets/${assetId}/status`, { token: supervisor, body: { status: 'Retired' }, expect: 422 });
         await call('PATCH', `/assets/${assetId}/status`, { token: supervisor, body: { status: 'Disposed' }, expect: 409 });
         await call('PATCH', `/assets/${assetId}/status`, { token: supervisor, body: { status: 'Retired', reason: 'End of service life' }, expect: 200 });
+        await call('PATCH', `/assets/${assetId}/transfer`, { token: supervisor, body: { department: 'Operations', location: 'Yard', reason: 'Late transfer attempt' }, expect: 200 });
         await call('PATCH', `/assets/${assetId}/status`, { token: supervisor, body: { status: 'Disposed', reason: 'Auctioned' }, expect: 200 });
         await call('PATCH', `/assets/${assetId}/status`, { token: supervisor, body: { status: 'Available', reason: 'Reinstatement attempt' }, expect: 409 });
+        await call('PATCH', `/assets/${assetId}/transfer`, { token: supervisor, body: { department: 'Operations', location: 'Yard', reason: 'Post-disposal transfer' }, expect: 409 });
     }
     await call('GET', '/assets/AS-missing/history', { token: supervisor, expect: 404 });
+    await call('GET', '/assets/AS-missing/maintenance', { token: supervisor, expect: 404 });
+    await call('PATCH', '/assets/AS-missing/transfer', { token: supervisor, body: { department: 'Forensics', location: 'Lab', reason: 'Ghost asset' }, expect: 404 });
 
     const serviceSerial = `${assetSerial}-CAM`;
     const serviceAsset = await call('POST', '/assets', {
@@ -349,7 +365,7 @@ try {
     }
     const assetAudit = await call('GET', '/audit?limit=500', { token: admin, expect: 200 });
     const auditedActions = (assetAudit.data?.items || assetAudit.data || []).map((item) => item.action);
-    for (const action of ['ASSET_REGISTERED', 'ASSET_ASSIGNED', 'ASSET_STATUS_CHANGED', 'ASSET_MAINTENANCE_SCHEDULED', 'ASSET_MAINTENANCE_COMPLETED']) {
+    for (const action of ['ASSET_PURCHASED', 'ASSET_REGISTERED', 'ASSET_TRANSFERRED', 'ASSET_ASSIGNED', 'ASSET_STATUS_CHANGED', 'ASSET_MAINTENANCE_SCHEDULED', 'ASSET_MAINTENANCE_COMPLETED']) {
         expectTrue(auditedActions.includes(action), `audit trail is missing ${action}`);
     }
 

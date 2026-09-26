@@ -485,8 +485,34 @@ Reports     /reports/:type   (summary, cases, documents, evidence, tasks, integr
 Audit       /audit  /audit/actions  /audit/export  /audit/verify-chain
 Security    /security/overview  /security/alerts  /security/events
             /security/audit/verify-chain  /security/integrity/hash-chain
-Assets      /assets  assign, return, status, maintenance, history
+Assets      /assets  assign, transfer, return, status, maintenance, history
 ```
+
+### Asset lifecycle
+
+Assets follow an enforced state machine, and every transition requires a
+reason and is written to the audit trail and to the asset's own history:
+
+```
+Purchased -> Registered -> Assigned -> In use -> Maintenance -> Retired -> Disposed
+                       \-> Transferred (station/department handover)
+```
+
+| Step | Endpoint |
+| --- | --- |
+| Purchase + register | `POST /assets` (accepts `purchaseDate`, `vendor`, `purchaseCost`, `warrantyExpiry`) |
+| Assign to officer/station | `PATCH /assets/:id/assign` |
+| Transfer to another station | `PATCH /assets/:id/transfer` (department, location, reason) |
+| Return | `PATCH /assets/:id/return` |
+| Schedule maintenance | `POST /assets/:id/maintenance` |
+| Complete maintenance | `PATCH /assets/:id/maintenance/complete` |
+| Retire / dispose | `PATCH /assets/:id/status` with a reason |
+| Inspect | `GET /assets/:id/history`, `GET /assets/:id/maintenance` |
+
+Illegal transitions are rejected with `409` and each step emits an audit
+event (`ASSET_PURCHASED`, `ASSET_REGISTERED`, `ASSET_ASSIGNED`,
+`ASSET_TRANSFERRED`, `ASSET_RETURNED`, `ASSET_STATUS_CHANGED`,
+`ASSET_MAINTENANCE_SCHEDULED`, `ASSET_MAINTENANCE_COMPLETED`).
 
 Health check:
 
