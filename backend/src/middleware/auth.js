@@ -1,88 +1,92 @@
 import { env } from '../config/env.js';
-import { verifyAccessToken } from '../services/auth.service.js';
+import { getCurrentUserFromToken, verifyAccessToken } from '../services/auth.service.js';
+import { canAccessResource as policyCanAccessResource, filterAccessibleResources as policyFilterAccessibleResources, hasPermission } from '../services/authorization.service.js';
 
-const clearanceByRole = {
-    Administrator: 4,
-    Supervisor: 3,
-    'Legal Officer': 3,
-    'Investigation Officer': 2,
-};
-
-const clearanceByClassification = {
-    PUBLIC: 0,
-    INTERNAL: 1,
-    CONFIDENTIAL: 2,
-    RESTRICTED: 3,
-    HIGHLY_RESTRICTED: 4,
-};
-
-export function canAccessResource(user, resource, relatedResource = null) {
-    if (!user) return false;
-    if (user.role === 'Administrator') return true;
-
-    const subject = relatedResource || resource;
-    const departmentMatches = user.role === 'Supervisor' || !subject?.department || subject.department === user.department;
-    const classification = String(resource?.classification || subject?.classification || 'PUBLIC').toUpperCase().replaceAll(' ', '_');
-    const clearanceMatches = (clearanceByRole[user.role] || 0) >= (clearanceByClassification[classification] ?? 0);
-
-    return departmentMatches && clearanceMatches;
+export function canAccessResource(user, resource, relatedResource = null, options = {}) {
+    return policyCanAccessResource(user, resource, relatedResource, options);
 }
 
 export function filterAccessibleResources(user, resources, relatedResources = new Map()) {
-    return resources.filter((resource) => canAccessResource(user, resource, relatedResources.get(resource.caseId)));
+    return policyFilterAccessibleResources(user, resources, relatedResources);
 }
 
-export function requireAuth(req, res, next) {
+function bearerToken(req) {
     const authHeader = req.headers.authorization || '';
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (authHeader.startsWith('Bearer ')) return authHeader.slice(7).trim();
+    if (req.cookies?.accessToken) return req.cookies.accessToken;
+    return null;
+}
 
-    if (!token) {
-        return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required.' } });
-    }
+function unauthorized(res, message = 'Authentication required.') {
+    return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message } });
+}
 
+export async function requireAuth(req, res, next) {
+    const token = bearerToken(req);
+    if (!token) return unauthorized(res);
     try {
         const payload = verifyAccessToken(token);
+        const user = await getCurrentUserFromToken(token);
+        req.auth = payload;
+        req.accessToken = token;
+        req.user = { ...user, mfaLevel: payload.mfaLevel || (user.mfaEnabled ? 2 : 1) };
+        return next();
+    } catch (error) {
+        const status = error.status || 401;
+        return res.status(status).json({ success: false, error: { code: error.code || 'UNAUTHORIZED', message: error.message || 'Authentication required.' } });
+    }
+}
+
+export function requireRole(...allowedRoles) {
+    return (req, res, next) => {
+        if (!req.user) return unauthorized(res);
+        if (!allowedRoles.includes(req.user.role)) {
+            return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Insufficient permissions.' } });
+        }
+        return next();
+    };
+}
+
+export function requirePermission(permission) {
+    return (req, res, next) => {
+        if (!req.user) return unauthorized(res);
+        if (!hasPermission(req.user, permission)) {
+            return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Insufficient permissions.' } });
+        }
+        return next();
+    };
+}
+
+export function requireMfa(req, res, next) {
+    if (!req.user) return unauthorized(res);
+    if ((req.auth?.mfaLevel || req.user.mfaLevel || 0) < 1) {
+        return res.status(403).json({ success: false, error: { code: 'MFA_REQUIRED', message: 'Multi-factor verification is required.' } });
+    }
+    return next();
+}
+
+export function optionalAuth(req, res, next) {
+    const token = bearerToken(req);
+    if (!token) return next();
+    try {
+        const payload = verifyAccessToken(token);
+        req.auth = payload;
+        req.accessToken = token;
         req.user = {
             id: payload.sub,
             name: payload.name,
             email: payload.email,
             role: payload.role,
             department: payload.department,
+            clearance: payload.clearance,
+            mfaLevel: payload.mfaLevel || 1,
         };
-        next();
-    } catch (error) {
-        return res.status(401).json({ success: false, error: { code: error.code || 'UNAUTHORIZED', message: error.message || 'Unauthorized.' } });
-    }
-}
-
-export function requireRole(...allowedRoles) {
-    return (req, res, next) => {
-        if (!req.user) {
-            return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required.' } });
-        }
-
-        if (!allowedRoles.includes(req.user.role)) {
-            return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Insufficient permissions.' } });
-        }
-
-        next();
-    };
-}
-
-export function optionalAuth(req, res, next) {
-    const token = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null;
-    if (!token) return next();
-
-    try {
-        const payload = verifyAccessToken(token);
-        req.user = {
-            id: payload.sub,
-            email: payload.email,
-            role: payload.role,
-            department: payload.department,
-        };
-    } catch (error) {
+    } catch {
         req.user = null;
     }
-    next();
+    return next();
+}
+
+export function authEnvironment() {
+    return { nodeEnv: env.nodeEnv, allowDemoMfa: env.allowDemoMfa };
 }

@@ -11,7 +11,7 @@ A security-first web platform for managing investigation cases, documents, evide
 [![Node.js](https://img.shields.io/badge/Node.js-LTS-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![JWT](https://img.shields.io/badge/Auth-JWT%20%2B%20TOTP-7C3AED)](https://jwt.io/)
-[![Security](https://img.shields.io/badge/Security-AES--256--GCM%20%7C%20SHA3--256-DC2626)](#security-model)
+[![Security](https://img.shields.io/badge/Security-AES--256--GCM%20%7C%20SHA--256-DC2626)](#security-model)
 
 </div>
 
@@ -95,7 +95,7 @@ Verified result
 | Chain of custody | Hash-linked custody history |
 | Asset management | Track department assets through their lifecycle |
 | Auditability | Security-sensitive actions recorded in an audit chain |
-| Integrity verification | SHA3-256, hash chains, and Merkle validation |
+| Integrity verification | SHA-256, hash chains, and Merkle validation |
 | Data protection | AES-256-GCM encryption helpers |
 | Security visibility | Security and verification dashboards |
 
@@ -103,7 +103,7 @@ Verified result
 
 ## Key Features
 
-### 🔐 Authentication & MFA
+### Authentication & MFA
 
 CaseVault uses a multi-step authentication flow:
 
@@ -128,7 +128,7 @@ Implemented components include:
 
 ---
 
-### 🛡️ Server-Side Authorization
+### Server-Side Authorization
 
 CaseVault does not rely on frontend route protection alone.
 
@@ -165,14 +165,14 @@ This creates a **zero-trust-style authorization flow** where each sensitive requ
 
 ---
 
-### 🔏 Cryptographic Integrity
+### Cryptographic Integrity
 
 CaseVault treats data integrity as a first-class feature.
 
 Implemented cryptographic mechanisms include:
 
 - **AES-256-GCM** for authenticated encryption
-- **SHA3-256** for hashing
+- **SHA-256** for hashing
 - **HKDF-style key derivation helper**
 - **Hash chains**
 - **Merkle tree generation**
@@ -184,7 +184,7 @@ The goal is not simply to store a record, but to provide a mechanism for detecti
 
 ---
 
-### 📦 Evidence & Chain of Custody
+### Evidence & Chain of Custody
 
 Evidence records can move between authorized users or stages of an investigation.
 
@@ -214,7 +214,7 @@ CaseVault exposes this verification through the backend and the application UI.
 
 ---
 
-### 📋 Tamper-Evident Audit Trail
+### Tamper-Evident Audit Trail
 
 Security-sensitive operations are represented in an audit chain.
 
@@ -236,7 +236,7 @@ The verification layer can detect inconsistencies in the expected chain.
 
 ---
 
-### 🗂️ Case Management
+### Case Management
 
 Cases provide the central organizational unit for investigations.
 
@@ -253,7 +253,7 @@ The application supports workflows around:
 
 ---
 
-### 📄 Document Management
+### Document Management
 
 Documents are associated with investigation workflows and can be checked for integrity.
 
@@ -269,7 +269,7 @@ The important distinction is that **document integrity can be verified independe
 
 ---
 
-### 🧰 Asset Management
+### Asset Management
 
 CaseVault also manages department assets such as operational equipment.
 
@@ -303,7 +303,7 @@ flowchart LR
     API --> POLICY[RBAC / ABAC / Policy Engine]
     API --> SEC[Security & Integrity Layer]
 
-    SEC --> HASH[SHA3-256]
+    SEC --> HASH[SHA-256]
     SEC --> ENC[AES-256-GCM]
     SEC --> MERKLE[Merkle Validation]
     SEC --> CHAIN[Hash Chains]
@@ -343,22 +343,21 @@ flowchart TD
 | Layer | Technology |
 |---|---|
 | Frontend | React 18, Vite, React Router |
-| State | Redux Toolkit |
-| UI | Tailwind CSS, Lucide React |
+| State | React Context providers (auth, theme, toast) |
+| UI | Tailwind CSS, Lucide React, clsx |
 | Data visualization | Recharts |
-| HTTP client | Axios |
+| HTTP client | Axios, with automatic token refresh |
 | Backend | Node.js, Express |
-| Validation | Zod |
 | Security middleware | Helmet, CORS, rate limiting |
-| Authentication | JWT |
-| Password security | Argon2 / bcrypt |
+| Authentication | JWT access tokens + revocable refresh sessions |
+| Password security | bcrypt |
 | MFA | otplib / TOTP |
 | Encryption | AES-256-GCM |
-| Hashing | SHA3-256 |
+| Hashing | SHA-256, HMAC-SHA-256 |
 | Integrity | Hash chains, Merkle trees |
 | Logging | Pino |
-| Storage hooks | PostgreSQL, Redis, MinIO |
-| Testing | Node.js built-in test runner |
+| Persistence | JSON metadata store + encrypted `.cvault` files |
+| Testing | Node.js built-in test runner, plus an API smoke suite |
 | Language | JavaScript / JSX |
 
 ---
@@ -370,22 +369,24 @@ CaseVault/
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── pages/
-│   │   ├── components/
-│   │   ├── services/
-│   │   └── ...
+│   │   ├── pages/          one module per screen
+│   │   ├── components/     layout, ui, charts, ai
+│   │   ├── context/        auth, theme, toast providers
+│   │   ├── hooks/          useResource, useDocumentTitle, helpers
+│   │   └── lib/            apiClient, capabilities, format, csv, secureFiles
 │   ├── package.json
-│   └── vite.config.*
+│   └── vite.config.js
 │
 ├── backend/
 │   ├── src/
-│   │   ├── routes/
-│   │   ├── services/
-│   │   ├── middleware/
+│   │   ├── routes/         one router per resource group
+│   │   ├── services/       store, auth, ai, security-core, storage
+│   │   ├── middleware/     auth, error handling
+│   │   ├── config/         env, logger
 │   │   └── server.js
-│   ├── scripts/
+│   ├── scripts/            api-smoke.mjs
 │   ├── package.json
-│   └── ...
+│   └── data/               runtime JSON store and encrypted documents (gitignored)
 │
 ├── docs/
 │   ├── architecture.md
@@ -406,15 +407,20 @@ CaseVault/
 | Module | Purpose |
 |---|---|
 | Dashboard | Security and operational overview |
-| Cases | Investigation case management |
-| Documents | Document records and integrity checks |
-| Evidence | Evidence registration and custody |
-| Assets | Department asset lifecycle |
-| Audit | Audit events and chain verification |
-| Security | Security posture and policy information |
-| Verification | Integrity verification workflows |
-| Profile | User profile |
-| Settings | Application preferences |
+| Cases | Investigation case management, members, timeline and tasks |
+| Documents | Uploads, versions, approval, sharing, signatures and integrity |
+| Evidence | Evidence registration, custody transfers and chain validation |
+| Tasks | Assigned work with status transitions and due dates |
+| Search | Cross-resource search filtered to what the caller may read |
+| Assistant | Authorization-filtered AI workspace and case assistant |
+| Reports | Summary, cases, documents, evidence, tasks and integrity reports |
+| Audit | Audit events with hash-chain verification |
+| Security | Security posture, alerts and events |
+| Users | Role, department, clearance and status administration |
+| Departments | Department directory and case distribution |
+| Assets | Department asset lifecycle with assignment and maintenance |
+| Profile | Display name, password change and effective permissions |
+| Settings | Theme, session and enforced-policy information |
 
 ---
 
@@ -426,32 +432,60 @@ The backend exposes REST APIs under:
 /api/v1
 ```
 
+Every response is wrapped as `{ "success": boolean, "data": ... }`, and errors
+as `{ "success": false, "error": { "code": string, "message": string } }`.
+
 ### Authentication
 
 ```http
+POST /api/v1/auth/register
 POST /api/v1/auth/login
 POST /api/v1/auth/verify-mfa
+POST /api/v1/auth/demo-code          (development only)
 POST /api/v1/auth/refresh
 POST /api/v1/auth/logout
 GET  /api/v1/auth/me
+GET  /api/v1/auth/mfa/setup
+POST /api/v1/auth/forgot-password
+POST /api/v1/auth/reset-password
+POST /api/v1/auth/change-password
 ```
 
 ### Cases
 
 ```http
-GET  /api/v1/cases
-POST /api/v1/cases
-GET  /api/v1/cases/:id
+GET    /api/v1/cases
+POST   /api/v1/cases
+GET    /api/v1/cases/:id
+PATCH  /api/v1/cases/:id
+PATCH  /api/v1/cases/:id/status
+GET    /api/v1/cases/:id/documents
+GET    /api/v1/cases/:id/evidence
+GET    /api/v1/cases/:id/members
+POST   /api/v1/cases/:id/members
+DELETE /api/v1/cases/:id/members/:userId
+GET    /api/v1/cases/:id/timeline
+POST   /api/v1/cases/:id/timeline
 ```
 
 ### Other API groups
 
 ```text
-Documents
-Evidence
-Assets
-Audit
-Security
+Documents   /documents  /documents/shared  versions, shares, signatures, verify
+Evidence    /evidence   custody, transfer, verify, verify-custody
+Tasks       /tasks      /tasks/case/:caseId
+Signatures  /signatures /signatures/requests
+Users       /users      /users/me  /users/departments  /users/roles
+Notifications /notifications  /notifications/unread-count
+Search      /search?q=
+Dashboard   /dashboard  /dashboard/summary  /dashboard/recent-activity
+AI          /ai/info  /ai/workspace  /ai/analyze  /ai/cases/:caseId/chat
+            /ai/cases/:caseId/summarize  /ai/documents/:id/analyze
+Reports     /reports/:type   (summary, cases, documents, evidence, tasks, integrity)
+Audit       /audit  /audit/actions  /audit/export  /audit/verify-chain
+Security    /security/overview  /security/alerts  /security/events
+            /security/audit/verify-chain  /security/integrity/hash-chain
+Assets      /assets  assign, return, status, maintenance, history
 ```
 
 Health check:
@@ -534,12 +568,38 @@ The development application is available at:
 http://localhost:5173
 ```
 
-### 5. Run backend tests
+### 5. Sign in
+
+The API seeds seven demo accounts. Every one of them uses the password
+`password123`, which is the bcrypt hash in `DEV_PASSWORD_HASH`.
+
+| Email | Role | Clearance | MFA |
+| --- | --- | --- | --- |
+| `admin@casevault.local` | Administrator | HIGHLY_RESTRICTED | Required |
+| `investigator@casevault.local` | Investigation Officer | CONFIDENTIAL | Required |
+| `supervisor@casevault.local` | Supervisor | RESTRICTED | Disabled |
+| `legal@casevault.local` | Legal Officer | RESTRICTED | Required |
+| `analyst@casevault.local` | Analyst | RESTRICTED | Disabled |
+| `forensics@casevault.local` | Investigation Officer | CONFIDENTIAL | Disabled |
+| `disabled@casevault.local` | Viewer | INTERNAL | Disabled (cannot sign in) |
+
+Where MFA is required, the sign-in screen shows a **Get current test code**
+button. It calls `POST /api/v1/auth/demo-code`, which is refused whenever
+`ALLOW_DEMO_MFA=false` or `NODE_ENV=production`.
+
+### 6. Run the tests
 
 ```bash
 cd backend
-npm test
+npm test          # unit tests
+npm run smoke     # end-to-end API and authorization suite
 ```
+
+The smoke suite boots the API against a throwaway data directory in the
+system temp folder, so it never touches `backend/data`. It raises the rate
+limit for its own process and asserts both positive and negative paths,
+including authorization denials, document and evidence integrity, the audit
+hash chain, document sharing, and the full password-reset lifecycle.
 
 ---
 
@@ -598,12 +658,12 @@ A unique IV/nonce must be used for each encryption operation.
 
 ### Hashing
 
-SHA3-256 is used to produce deterministic integrity digests:
+SHA-256 is used to produce deterministic integrity digests:
 
 ```text
 Data
  ↓
-SHA3-256
+SHA-256
  ↓
 Digest
 ```
@@ -632,24 +692,32 @@ CaseVault intentionally distinguishes between **implemented prototype functional
 
 ### Implemented
 
-- React web application
-- Express REST API
-- JWT authentication
-- TOTP MFA flow
-- Server-side authorization/policy evaluation
-- Cases
-- Documents
-- Evidence
-- Asset management
-- Audit records
-- AES-256-GCM helpers
-- SHA3-256 hashing
-- HKDF-style key derivation helper
-- Merkle tree validation
-- Custody hash-chain validation
-- Audit-chain validation
-- Security and verification screens
-- Backend tests for security/integrity behavior
+- React 18 web application with a protected route tree, light/dark theming and a responsive shell
+- Express REST API with Helmet, CORS, request ids and configurable rate limiting
+- JWT access tokens with rotating, server-side revocable refresh sessions
+- TOTP MFA flow, including enrolment and a development-only code endpoint
+- Password reset and in-session password change, both of which revoke other refresh sessions
+- Server-side RBAC plus per-resource clearance and case-membership authorization
+- Cases, case members, status transitions and a case timeline
+- Documents with immutable versions, MIME and size validation, approval workflow, per-user
+  sharing with expiry and revocation, and signature requests
+- Evidence with custody events, transfers and hash-linked custody-chain validation
+- Tasks, notifications, global search and departments
+- Asset register with an enforced lifecycle, assignment, maintenance and history
+- Reports, audit browsing with chain verification, and a security console
+- Authorization-filtered AI workspace, case chat, case summary and document analysis, with a
+  deterministic local provider that makes no external network calls
+- AES-256-GCM document encryption at rest, SHA-256 integrity hashing, HMAC signing and audit hash chains
+- 19 unit tests and a 159-check end-to-end API smoke suite
+
+### Not wired up
+
+`DATABASE_URL`, `REDIS_URL` and the `MINIO_*` variables are still present in
+`backend/src/config/env.js` for historical reasons but are **not read by any
+application code**. Persistence is the JSON store plus encrypted files on disk.
+SMTP delivery is supported when `SMTP_*` and the optional `nodemailer` package
+are configured; otherwise outbound mail is written to the `mailOutbox`
+collection in the data file.
 
 ### Production roadmap
 

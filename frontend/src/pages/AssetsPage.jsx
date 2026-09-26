@@ -1,142 +1,226 @@
-import { useEffect, useState } from 'react';
-import { api } from '../services/api.js';
+import { useMemo, useState } from 'react';
+import { Box, Download, Filter, Plus, Search, Wrench } from 'lucide-react';
+import PageHeader from '../components/ui/PageHeader.jsx';
+import Button from '../components/ui/Button.jsx';
+import Badge from '../components/ui/Badge.jsx';
+import DataTable from '../components/ui/DataTable.jsx';
+import Modal from '../components/ui/Modal.jsx';
+import { Input, Select, Textarea } from '../components/ui/Form.jsx';
+import { Card, CardBody } from '../components/ui/Card.jsx';
+import { ErrorState, InlineError } from '../components/ui/States.jsx';
+import { SkeletonTable } from '../components/ui/Skeleton.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
+import { useToast } from '../context/ToastContext.jsx';
+import { useDocumentTitle, useResource } from '../hooks/useResource.js';
+import { api, apiErrorMessage, unwrap } from '../lib/apiClient.js';
+import { downloadCsv, timestampedName } from '../lib/csv.js';
+import { formatDateTime } from '../lib/format.js';
 
-const emptyForm = { name: '', category: 'Computers', serial: '', department: '', location: '', condition: 'Good' };
-const transitionOptions = ['Available', 'Assigned', 'Maintenance', 'Retired', 'Disposed'];
+const ASSET_TRANSITIONS = {
+    Available: ['Assigned', 'Maintenance', 'Retired'],
+    Registered: ['Available', 'Assigned', 'Maintenance', 'Retired'],
+    Assigned: ['Available', 'Maintenance', 'Retired'],
+    'Active / In Use': ['Available', 'Maintenance', 'Retired'],
+    Maintenance: ['Available', 'Assigned', 'Retired'],
+    Retired: ['Disposed'],
+    Disposed: [],
+};
+
+const CATEGORIES = ['Vehicles', 'Computers', 'Weapons', 'Communications', 'Field Equipment', 'Forensic Equipment', 'Other'];
+
+const EMPTY_FORM = { name: '', category: CATEGORIES[0], serial: '', department: '', location: '', condition: 'Operational' };
 
 export default function AssetsPage() {
-    const [assets, setAssets] = useState([]);
+    const { user } = useAuth();
+    const toast = useToast();
+    useDocumentTitle('Assets');
+
     const [search, setSearch] = useState('');
-    const [form, setForm] = useState(emptyForm);
-    const [open, setOpen] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [status, setStatus] = useState('');
+    const [createOpen, setCreateOpen] = useState(false);
+    const [form, setForm] = useState(EMPTY_FORM);
+    const [formError, setFormError] = useState('');
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState('');
-    const [selected, setSelected] = useState(null);
-    const [history, setHistory] = useState([]);
-    const [maintenance, setMaintenance] = useState([]);
+    const [busy, setBusy] = useState('');
 
-    async function loadAssets() {
-        setLoading(true);
-        try {
-            const response = await api.get('/assets', { params: { search } });
-            setAssets(response.data.data || []);
-            setError('');
-        } catch (requestError) {
-            setError(requestError?.response?.data?.error?.message || 'Unable to load assets.');
-        } finally {
-            setLoading(false);
-        }
-    }
+    const assets = useResource(() => api.get('/assets').then(unwrap), []);
 
-    useEffect(() => { loadAssets(); }, [search]);
+    const list = assets.data || [];
+    const canManage = ['Administrator', 'Supervisor'].includes(user?.role);
 
-    async function registerAsset(event) {
+    const filtered = useMemo(() => {
+        const term = search.trim().toLowerCase();
+        return list.filter((item) => {
+            const matchesTerm = !term || [item.id, item.name, item.serial, item.department, item.assignedOfficer]
+                .some((value) => String(value || '').toLowerCase().includes(term));
+            return matchesTerm && (!status || item.status === status);
+        });
+    }, [list, search, status]);
+
+    const create = async (event) => {
         event.preventDefault();
+        setFormError('');
         setSaving(true);
         try {
-            await api.post('/assets', form);
-            setForm(emptyForm);
-            setOpen(false);
-            await loadAssets();
-        } catch (requestError) {
-            setError(requestError?.response?.data?.error?.message || 'Unable to register asset.');
+            await api.post('/assets', {
+                name: form.name.trim(),
+                category: form.category,
+                serial: form.serial.trim(),
+                department: form.department.trim(),
+                location: form.location.trim(),
+                condition: form.condition,
+            });
+            toast.success('Asset registered.');
+            setForm(EMPTY_FORM);
+            setCreateOpen(false);
+            assets.reload();
+        } catch (error) {
+            setFormError(apiErrorMessage(error, 'The asset could not be registered.'));
         } finally {
             setSaving(false);
         }
-    }
+    };
 
-    async function inspectAsset(asset) {
-        setSelected(asset);
+    const act = async (asset, path, payload, message) => {
+        setBusy(asset.id);
         try {
-            const [historyResponse, maintenanceResponse] = await Promise.all([
-                api.get(`/assets/${asset.id}/history`),
-                api.get(`/assets/${asset.id}/maintenance`),
-            ]);
-            setHistory(historyResponse.data.data || []);
-            setMaintenance(maintenanceResponse.data.data || []);
-        } catch (requestError) {
-            setError(requestError?.response?.data?.error?.message || 'Unable to load asset history.');
+            await api.patch(`/assets/${encodeURIComponent(asset.id)}/${path}`, payload);
+            toast.success(message);
+            assets.reload();
+        } catch (error) {
+            toast.error(apiErrorMessage(error));
+        } finally {
+            setBusy('');
         }
-    }
+    };
 
-    async function changeStatus(status) {
-        const reason = window.prompt('Reason for status change');
-        if (!reason) return;
-        try {
-            await api.patch(`/assets/${selected.id}/status`, { status, reason });
-            await loadAssets();
-            await inspectAsset({ ...selected, status });
-        } catch (requestError) {
-            setError(requestError?.response?.data?.error?.message || 'Unable to change asset status.');
-        }
-    }
-
-    async function assignAsset() {
-        const assignedOfficer = window.prompt('Officer or custodian');
-        const location = window.prompt('Assigned location', selected.location);
-        if (!assignedOfficer || !location) return;
-        try {
-            await api.patch(`/assets/${selected.id}/assign`, { assignedOfficer, location });
-            await loadAssets();
-            await inspectAsset({ ...selected, assignedOfficer, location, status: 'Assigned' });
-        } catch (requestError) {
-            setError(requestError?.response?.data?.error?.message || 'Unable to assign asset.');
-        }
-    }
-
-    async function returnAsset() {
-        const location = window.prompt('Return location', selected.location);
-        if (!location) return;
-        try {
-            await api.patch(`/assets/${selected.id}/return`, { location });
-            await loadAssets();
-            await inspectAsset({ ...selected, assignedOfficer: null, location, status: 'Available' });
-        } catch (requestError) {
-            setError(requestError?.response?.data?.error?.message || 'Unable to return asset.');
-        }
-    }
-
-    async function scheduleMaintenance() {
-        const vendor = window.prompt('Maintenance vendor');
-        const scheduledDate = window.prompt('Scheduled date (YYYY-MM-DD)');
-        if (!vendor || !scheduledDate) return;
-        try {
-            await api.post(`/assets/${selected.id}/maintenance`, { vendor, scheduledDate });
-            await loadAssets();
-            await inspectAsset({ ...selected, status: 'Maintenance' });
-        } catch (requestError) {
-            setError(requestError?.response?.data?.error?.message || 'Unable to schedule maintenance.');
-        }
-    }
-
-    async function completeMaintenance() {
-        try {
-            await api.patch(`/assets/${selected.id}/maintenance/complete`, {});
-            await loadAssets();
-            await inspectAsset({ ...selected, status: 'Available' });
-        } catch (requestError) {
-            setError(requestError?.response?.data?.error?.message || 'Unable to complete maintenance.');
-        }
-    }
+    const columns = [
+        {
+            key: 'name',
+            header: 'Asset',
+            primary: true,
+            render: (row) => (
+                <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-ink-900 dark:text-ink-50">{row.name}</p>
+                    <p className="truncate text-xs text-ink-500 dark:text-ink-400">{row.id} · {row.serial}</p>
+                </div>
+            ),
+        },
+        { key: 'category', header: 'Category', render: (row) => <span className="text-xs">{row.category}</span> },
+        { key: 'department', header: 'Department', render: (row) => <span className="text-xs">{row.department}</span> },
+        { key: 'assignedOfficer', header: 'Assigned to', render: (row) => <span className="text-xs">{row.assignedOfficer || 'Unassigned'}</span> },
+        { key: 'location', header: 'Location', render: (row) => <span className="text-xs">{row.location}</span> },
+        { key: 'condition', header: 'Condition', render: (row) => <Badge value={row.condition} /> },
+        { key: 'status', header: 'Status', render: (row) => <Badge value={row.status} /> },
+        ...(canManage ? [{
+            key: 'actions',
+            header: 'Actions',
+            render: (row) => (
+                <div className="flex flex-wrap gap-1.5">
+                    {row.status === 'Available' ? (
+                        <Button variant="ghost" size="sm" loading={busy === row.id} onClick={() => act(row, 'assign', { assignedOfficer: user?.name, location: row.location }, `${row.name} assigned to you.`)}>Assign to me</Button>
+                    ) : null}
+                    {['Assigned', 'Active / In Use'].includes(row.status) ? (
+                        <Button variant="ghost" size="sm" loading={busy === row.id} onClick={() => act(row, 'return', { location: row.location, condition: row.condition }, `${row.name} returned.`)}>Return</Button>
+                    ) : null}
+                    {(ASSET_TRANSITIONS[row.status] || []).filter((next) => !['Assigned', 'Available'].includes(next)).map((next) => (
+                        <Button
+                            key={next}
+                            variant="ghost"
+                            size="sm"
+                            icon={next === 'Maintenance' ? Wrench : undefined}
+                            loading={busy === row.id}
+                            onClick={() => act(row, 'status', { status: next, reason: `Moved to ${next} from the assets workspace.` }, `${row.name} is now ${next}.`)}
+                        >
+                            {next}
+                        </Button>
+                    ))}
+                </div>
+            ),
+        }] : []),
+    ];
 
     return (
-        <div>
-            <div className="page-header">
-                <h1>Assets</h1>
-                <button className="btn btn-primary" type="button" onClick={() => setOpen(true)}>Register Asset</button>
-            </div>
-            <div className="card" style={{ padding: 16 }}>
-                <input className="input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search asset, serial, department" style={{ marginBottom: 16 }} />
-                {error && <p className="error">{error}</p>}
-                {loading ? <p className="muted">Loading assets...</p> : assets.length === 0 ? <p className="muted">No assets found.</p> : (
-                    <div className="table-wrap"><table><thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Serial</th><th>Department</th><th>Officer</th><th>Location</th><th>Condition</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-                        {assets.map((item) => <tr key={item.id}><td>{item.id}</td><td>{item.name}</td><td>{item.category}</td><td>{item.serial}</td><td>{item.department}</td><td>{item.assignedOfficer || 'Unassigned'}</td><td>{item.location}</td><td>{item.condition}</td><td>{item.status}</td><td><button className="btn btn-secondary" type="button" onClick={() => inspectAsset(item)}>Manage</button></td></tr>)}
-                    </tbody></table></div>
+        <div className="space-y-5">
+            <PageHeader
+                title="Assets"
+                description="Physical and technical assets with an enforced lifecycle. Status changes require a reason and are recorded in the audit trail."
+                actions={(
+                    <>
+                        <Button variant="secondary" icon={Download} onClick={() => downloadCsv(timestampedName('casevault-assets'), filtered, ['id', 'name', 'category', 'serial', 'department', 'assignedOfficer', 'location', 'condition', 'status'])} disabled={!filtered.length}>
+                            Export CSV
+                        </Button>
+                        {canManage ? <Button icon={Plus} onClick={() => { setForm(EMPTY_FORM); setFormError(''); setCreateOpen(true); }}>Register asset</Button> : null}
+                    </>
                 )}
-            </div>
-            {selected && <div className="card" style={{ marginTop: 20, padding: 20 }}><div className="page-header"><h2>{selected.name}</h2><button className="btn btn-secondary" type="button" onClick={() => setSelected(null)}>Close</button></div><p className="muted">{selected.id} · {selected.status} · {selected.serial}</p><div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{selected.status === 'Available' && <button className="btn btn-primary" type="button" onClick={assignAsset}>Assign</button>}{(selected.status === 'Assigned' || selected.status === 'Active / In Use') && <button className="btn btn-primary" type="button" onClick={returnAsset}>Return</button>}{transitionOptions.map((status) => <button key={status} className="btn btn-secondary" type="button" onClick={() => changeStatus(status)}>{status}</button>)}<button className="btn btn-secondary" type="button" onClick={scheduleMaintenance}>Schedule Maintenance</button>{selected.status === 'Maintenance' && <button className="btn btn-primary" type="button" onClick={completeMaintenance}>Complete Maintenance</button>}</div><h3>History</h3>{history.length === 0 ? <p className="muted">No history recorded.</p> : <ul>{history.map((event) => <li key={event.eventId}>{event.action} · {event.fromStatus} to {event.toStatus} · {event.timestamp}</li>)}</ul>}<h3>Maintenance</h3>{maintenance.length === 0 ? <p className="muted">No maintenance records.</p> : <ul>{maintenance.map((item) => <li key={item.id}>{item.vendor} · {item.status} · {item.scheduledDate}</li>)}</ul>}</div>}
-            {open && <div className="modal-backdrop"><div className="modal" role="dialog" aria-modal="true"><h2>Register Asset</h2><form onSubmit={registerAsset}><div className="form-grid"><label className="field">Name<input className="input" required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label><label className="field">Serial number<input className="input" required value={form.serial} onChange={(event) => setForm({ ...form, serial: event.target.value })} /></label><label className="field">Category<input className="input" required value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} /></label><label className="field">Department<input className="input" required value={form.department} onChange={(event) => setForm({ ...form, department: event.target.value })} /></label><label className="field">Location<input className="input" required value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} /></label><label className="field">Condition<input className="input" value={form.condition} onChange={(event) => setForm({ ...form, condition: event.target.value })} /></label></div><div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}><button className="btn btn-secondary" type="button" onClick={() => setOpen(false)}>Cancel</button><button className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Register'}</button></div></form></div></div>}
+            />
+
+            <Card>
+                <CardBody className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="relative xl:col-span-3">
+                        <label htmlFor="asset-search" className="sr-only">Search assets</label>
+                        <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" aria-hidden="true" />
+                        <input
+                            id="asset-search"
+                            type="search"
+                            className="cv-input pl-9"
+                            placeholder="Search asset name, serial, department…"
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                        />
+                    </div>
+                    <Select aria-label="Filter by status" value={status} onChange={(event) => setStatus(event.target.value)} placeholder="All statuses" options={[...new Set(list.map((item) => item.status).filter(Boolean))]} />
+                </CardBody>
+            </Card>
+
+            <Card>
+                <CardBody className="space-y-2">
+                    <p className="flex items-center gap-1.5 text-xs text-ink-500 dark:text-ink-400">
+                        <Filter size={12} aria-hidden="true" />
+                        {filtered.length} of {list.length} assets
+                    </p>
+                    <div className="px-0 sm:px-1">
+                        {assets.loading && !assets.data ? <SkeletonTable rows={6} columns={5} />
+                            : assets.error ? <ErrorState message={apiErrorMessage(assets.error)} onRetry={assets.reload} />
+                                : (
+                                    <DataTable
+                                        columns={columns}
+                                        rows={filtered}
+                                        mobileTitle="Asset"
+                                        emptyIcon={Box}
+                                        emptyTitle={list.length ? 'No assets match these filters' : 'No assets registered'}
+                                    />
+                                )}
+                    </div>
+                </CardBody>
+            </Card>
+
+            <Modal
+                open={createOpen}
+                onClose={() => setCreateOpen(false)}
+                title="Register an asset"
+                description="Serial numbers must be unique across the deployment."
+                footer={(
+                    <>
+                        <Button variant="secondary" onClick={() => setCreateOpen(false)}>Cancel</Button>
+                        <Button type="submit" form="asset-form" loading={saving}>Register asset</Button>
+                    </>
+                )}
+            >
+                <form id="asset-form" onSubmit={create} className="space-y-4" noValidate>
+                    <Input label="Asset name" required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Forensic Laptop-03" />
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <Select label="Category" value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} options={CATEGORIES} />
+                        <Input label="Serial" required value={form.serial} onChange={(event) => setForm({ ...form, serial: event.target.value })} placeholder="LAP-22192" />
+                        <Input label="Department" required value={form.department} onChange={(event) => setForm({ ...form, department: event.target.value })} placeholder="Forensics" />
+                        <Input label="Location" required value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} placeholder="Lab 1" />
+                    </div>
+                    <Select label="Condition" value={form.condition} onChange={(event) => setForm({ ...form, condition: event.target.value })} options={['Operational', 'Good', 'Fair', 'Damaged']} />
+                    <Textarea label="Notes (optional)" rows={2} onChange={(event) => setForm({ ...form, notes: event.target.value })} />
+                    <InlineError message={formError} />
+                    <p className="text-xs text-ink-500 dark:text-ink-400">Registered {formatDateTime(new Date().toISOString())}.</p>
+                </form>
+            </Modal>
         </div>
     );
 }

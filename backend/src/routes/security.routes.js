@@ -1,135 +1,112 @@
 import express from 'express';
-import { requireAuth } from '../middleware/auth.js';
-import {
-    buildIntegrityReport,
-    createHashChainEvent,
-    getSecurityOverview,
-    sha3Hash,
-    verifySignature,
-    verifyAuditChain,
-    verifyCustodyChain,
-} from '../services/security-core.js';
-import { readCollection } from '../services/store.js';
+import { requireAuth, requirePermission } from '../middleware/auth.js';
+import { findDocumentForUser, findEvidenceForUser } from '../services/authorization.service.js';
+import { getAuthSessionCount } from '../services/auth.service.js';
+import { buildIntegrityReport, createHashChainEvent, getSecurityOverview, sha256Hash, sha3_256Hash, verifyAuditChain, verifyCustodyChain, verifySignature } from '../services/security-core.js';
+import { readEncryptedDocument } from '../services/document-storage.service.js';
+import { evidenceHashForEvidence, readCollection } from '../services/store.js';
+import { asyncRoute, sendData, textValue } from '../utils/route-helpers.js';
 
 const router = express.Router();
+const securityReader = requirePermission('security:read');
 
-function evidenceHash(evidence) {
-    const current = sha3Hash(`${evidence.id}:${evidence.description}:${evidence.type}:${evidence.collectionDate}`);
-    const legacy = sha3Hash(`${evidence.id}:${evidence.description}:${evidence.type}`);
-    return { current, legacy };
+function legacyEvidenceHashes(evidence) {
+    return [sha3_256Hash(`${evidence.id}:${evidence.description}:${evidence.type}${evidence.collectionDate ? `:${evidence.collectionDate}` : ''}`), sha3_256Hash(`${evidence.id}:${evidence.description}:${evidence.type}`)];
 }
 
-function notFound(res, message) {
-    return res.status(404).json({ success: false, error: { code: 'RESOURCE_NOT_FOUND', message } });
-}
+router.get('/overview', requireAuth, securityReader, asyncRoute(async (req, res) => {
+    const [documents, evidence, auditLogs, custodyEvents] = await Promise.all([readCollection('documents'), readCollection('evidence'), readCollection('auditLogs'), readCollection('custodyEvents')]);
+    const failedLogins = auditLogs.filter((item) => item.action === 'LOGIN_FAILED' || item.action === 'LOGIN_REJECTED_DISABLED').length;
+    const mfaFailures = auditLogs.filter((item) => item.action === 'MFA_FAILED' || item.action === 'MFA_CHALLENGE_INVALID').length;
+    const privilegeViolations = auditLogs.filter((item) => item.action === 'ACCESS_DENIED' || item.action === 'PRIVILEGE_VIOLATION').length;
+    const auditChain = verifyAuditChain(auditLogs);
+    const custodyChain = verifyCustodyChain(custodyEvents);
+    const overview = getSecurityOverview({
+        failedLogins,
+        mfaFailures,
+        lockedAccounts: 0,
+        activeSessions: getAuthSessionCount(),
+        deniedRequests: privilegeViolations,
+        privilegeViolations,
+        suspiciousAccess: privilegeViolations,
+        verifiedDocuments: documents.filter((item) => item.integrityStatus === 'VERIFIED').length,
+        failedVerification: documents.filter((item) => item.integrityStatus === 'COMPROMISED').length,
+        brokenAuditChains: auditChain.valid ? 0 : 1,
+        brokenCustodyChains: custodyEvents.length && !custodyChain.valid ? 1 : 0,
+    });
+    return sendData(res, overview);
+}));
 
-router.get('/overview', requireAuth, (req, res) => {
-    res.status(200).json({ success: true, data: getSecurityOverview() });
-});
+router.get('/events', requireAuth, securityReader, asyncRoute(async (req, res) => {
+    const events = await readCollection('auditLogs');
+    const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 500);
+    const data = events.slice(-limit).reverse().map((item) => ({
+        eventId: item.eventId,
+        time: item.timestamp,
+        timestamp: item.timestamp,
+        user: item.actor,
+        actor: item.actor,
+        action: item.action,
+        resource: item.resource,
+        resourceId: item.resourceId,
+        severity: String(item.action).includes('FAILED') || String(item.action).includes('COMPROMISED') ? 'warning' : 'info',
+        hashAlgorithm: item.hashAlgorithm || 'SHA-256',
+        currentHash: item.currentHash,
+    }));
+    return sendData(res, data);
+}));
 
-router.get('/events', requireAuth, async (req, res, next) => {
-    try {
-        const events = await readCollection('auditLogs');
-        res.status(200).json({ success: true, data: events });
-    } catch (error) {
-        next(error);
-    }
-});
+router.get('/alerts', requireAuth, securityReader, asyncRoute(async (req, res) => {
+    const [auditLogs, documents, custodyEvents] = await Promise.all([readCollection('auditLogs'), readCollection('documents'), readCollection('custodyEvents')]);
+    const alerts = [];
+    if (!verifyAuditChain(auditLogs).valid) alerts.push({ id: 'SEC-AUDIT-CHAIN', severity: 'critical', title: 'Audit chain verification failed', message: 'The audit hash chain no longer verifies and requires investigation.' });
+    if (custodyEvents.length && !verifyCustodyChain(custodyEvents).valid) alerts.push({ id: 'SEC-CUSTODY-CHAIN', severity: 'critical', title: 'Custody chain verification failed', message: 'A chain-of-custody record failed hash verification.' });
+    const compromised = documents.filter((item) => item.integrityStatus === 'COMPROMISED');
+    if (compromised.length) alerts.push({ id: 'SEC-DOC-INTEGRITY', severity: 'critical', title: 'Document integrity failure', message: `${compromised.length} document(s) do not match their registered integrity hash.` });
+    const failedLogins = auditLogs.filter((item) => item.action === 'LOGIN_FAILED').length;
+    if (failedLogins > 0) alerts.push({ id: 'SEC-LOGIN-FAILURES', severity: 'warning', title: 'Failed login attempts recorded', message: `${failedLogins} failed login attempt(s) are recorded in the audit trail.` });
+    if (!alerts.length) alerts.push({ id: 'SEC-OK', severity: 'info', title: 'No active security alerts', message: 'Hash chains, document integrity, and cryptography health checks are nominal.' });
+    return sendData(res, alerts);
+}));
 
-router.get('/alerts', requireAuth, (req, res) => {
-    const alerts = [
-        { id: 'SEC-101', severity: 'warning', title: 'MFA challenge pending', message: 'Two high-risk actions require secondary verification.' },
-        { id: 'SEC-102', severity: 'info', title: 'Custody chain healthy', message: 'No chain-of-custody drift detected.' },
-    ];
-    res.status(200).json({ success: true, data: alerts });
-});
+router.post('/integrity/verify', requireAuth, securityReader, asyncRoute(async (req, res) => {
+    const candidate = textValue(req.body?.currentHash || req.body?.resource);
+    const registeredHash = textValue(req.body?.registeredHash);
+    const verified = Boolean(candidate && registeredHash) && (candidate === registeredHash || sha3_256Hash(candidate) === registeredHash);
+    return sendData(res, { ...buildIntegrityReport(textValue(req.body?.resourceName) || 'Resource', { hash: verified }), verified });
+}));
 
-router.post('/integrity/verify', requireAuth, (req, res) => {
-    const { resource, currentHash, registeredHash } = req.body || {};
-    const candidate = currentHash || resource || '';
-    const verified = Boolean(registeredHash) && (candidate === registeredHash || sha3Hash(candidate) === registeredHash);
-    const report = buildIntegrityReport(resource || 'Resource', { hash: verified });
-    res.status(200).json({ success: true, data: { ...report, verified } });
-});
+router.post('/documents/:id/verify', requireAuth, asyncRoute(async (req, res) => {
+    const { document } = await findDocumentForUser(req.user, req.params.id, { permission: 'document:verify' });
+    const stored = await readEncryptedDocument(document);
+    const currentHash = sha256Hash(stored);
+    const verified = currentHash === document.registeredHash;
+    const signatureStatus = document.signature ? (verifySignature(`${document.id}:${document.registeredHash}`, document.signature) ? 'VALID' : 'INVALID') : 'UNSIGNED';
+    return sendData(res, { documentId: document.id, status: verified ? 'VERIFIED' : 'COMPROMISED', algorithm: 'SHA-256', registeredHash: document.registeredHash, currentHash, lastVerified: new Date().toISOString(), signatureAlgorithm: 'Ed25519', signatureStatus, message: verified ? 'Hash matches the registered document hash.' : 'The current document does not match its registered integrity hash.' });
+}));
 
-router.post('/documents/:id/verify', requireAuth, async (req, res, next) => {
-    try {
-        const document = (await readCollection('documents')).find((item) => item.id === req.params.id);
-        if (!document) return notFound(res, 'Document not found.');
-        const sampleRegisteredHash = document.registeredHash;
-        const currentHash = sha3Hash(req.body?.content || document.fileName);
-        const verified = currentHash === sampleRegisteredHash;
-        return res.status(200).json({
-            success: true,
-            data: {
-                documentId: req.params.id,
-                status: verified ? 'VERIFIED' : 'COMPROMISED',
-                algorithm: 'SHA3-256',
-                registeredHash: sampleRegisteredHash,
-                currentHash,
-                lastVerified: new Date().toISOString(),
-                signatureAlgorithm: 'Ed25519',
-                signatureStatus: document.signature ? (verifySignature(`${document.id}:${document.registeredHash}`, document.signature) ? 'VALID' : 'INVALID') : 'UNSIGNED',
-                message: verified
-                    ? 'Hash matches the registered document hash.'
-                    : 'The current document does not match its registered integrity hash.',
-            },
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+router.post('/evidence/:id/verify', requireAuth, asyncRoute(async (req, res) => {
+    const { evidence } = await findEvidenceForUser(req.user, req.params.id, { permission: 'evidence:read' });
+    const currentHash = evidenceHashForEvidence(evidence);
+    const legacy = legacyEvidenceHashes(evidence);
+    const registeredHash = evidence.evidenceHash;
+    const verified = registeredHash === currentHash || legacy.includes(registeredHash);
+    const signatureStatus = evidence.signature ? (verifySignature(`${evidence.id}:${registeredHash}`, evidence.signature) ? 'VALID' : 'INVALID') : 'UNSIGNED';
+    return sendData(res, { evidenceId: evidence.id, status: verified ? 'VERIFIED' : 'COMPROMISED', algorithm: verified && legacy.includes(registeredHash) ? 'SHA3-256' : 'SHA-256', registeredHash, currentHash: legacy.includes(registeredHash) ? registeredHash : currentHash, lastVerified: new Date().toISOString(), signatureAlgorithm: 'Ed25519', signatureStatus });
+}));
 
-router.post('/evidence/:id/verify', requireAuth, async (req, res, next) => {
-    try {
-        const evidence = (await readCollection('evidence')).find((item) => item.id === req.params.id);
-        if (!evidence) return notFound(res, 'Evidence not found.');
-        const hashes = evidenceHash(evidence);
-        const registeredHash = evidence.evidenceHash;
-        const currentHash = registeredHash === hashes.legacy ? hashes.legacy : hashes.current;
-        const verified = registeredHash === hashes.current || registeredHash === hashes.legacy;
-        return res.status(200).json({
-            success: true,
-            data: {
-                evidenceId: req.params.id,
-                status: verified ? 'VERIFIED' : 'COMPROMISED',
-                algorithm: 'SHA3-256',
-                registeredHash,
-                currentHash,
-                lastVerified: new Date().toISOString(),
-                signatureAlgorithm: 'Ed25519',
-                signatureStatus: evidence.signature ? (verifySignature(`${evidence.id}:${evidence.evidenceHash}`, evidence.signature) ? 'VALID' : 'INVALID') : 'UNSIGNED',
-            },
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+router.post('/evidence/:id/verify-custody', requireAuth, asyncRoute(async (req, res) => {
+    const { evidence } = await findEvidenceForUser(req.user, req.params.id, { permission: 'evidence:read' });
+    const events = (await readCollection('custodyEvents')).filter((item) => item.evidenceId === evidence.id);
+    const result = events.length ? verifyCustodyChain(events) : { valid: false, reason: 'No custody events recorded.' };
+    return sendData(res, { evidenceId: evidence.id, algorithm: 'SHA-256', ...result });
+}));
 
-router.post('/audit/verify-chain', requireAuth, async (req, res, next) => {
-    try {
-        const result = verifyAuditChain(await readCollection('auditLogs'));
-        res.status(200).json({ success: true, data: result });
-    } catch (error) {
-        next(error);
-    }
-});
+router.post('/audit/verify-chain', requireAuth, securityReader, asyncRoute(async (req, res) => sendData(res, { algorithm: 'SHA-256', ...verifyAuditChain(await readCollection('auditLogs')) })));
 
-router.post('/evidence/:id/verify-custody', requireAuth, async (req, res, next) => {
-    try {
-        const evidence = (await readCollection('evidence')).find((item) => item.id === req.params.id);
-        if (!evidence) return notFound(res, 'Evidence not found.');
-        const events = (await readCollection('custodyEvents')).filter((item) => item.evidenceId === evidence.id);
-        const result = events.length ? verifyCustodyChain(events) : { valid: false, reason: 'No custody events recorded.' };
-        res.status(200).json({ success: true, data: result });
-    } catch (error) {
-        next(error);
-    }
-});
-
-router.post('/integrity/hash-chain', requireAuth, (req, res) => {
-    const event = createHashChainEvent({ action: 'document-approved', actor: req.user?.id || 'system' });
-    res.status(200).json({ success: true, data: event });
-});
+router.post('/integrity/hash-chain', requireAuth, securityReader, asyncRoute(async (req, res) => {
+    const auditLogs = await readCollection('auditLogs');
+    return sendData(res, createHashChainEvent({ action: 'integrity-check', actor: req.user.id, resource: 'Security', resourceId: 'HASH-CHAIN', timestamp: new Date().toISOString() }, auditLogs.at(-1)?.currentHash || 'GENESIS'));
+}));
 
 export default router;

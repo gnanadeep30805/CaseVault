@@ -1,95 +1,105 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
-import { useMemo, useState } from 'react';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import { ThemeProvider } from './context/ThemeContext.jsx';
+import { ToastProvider } from './context/ToastContext.jsx';
+import AppLayout from './components/layout/AppLayout.jsx';
+import RequireAuth from './components/layout/RequireAuth.jsx';
+import { PermissionNotice } from './components/ui/States.jsx';
+import LandingPage from './pages/LandingPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
-import VerifyMfaPage from './pages/VerifyMfaPage.jsx';
-import SignupPage from './pages/SignupPage.jsx';
+import RegisterPage from './pages/RegisterPage.jsx';
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import CasesPage from './pages/CasesPage.jsx';
 import CaseDetailPage from './pages/CaseDetailPage.jsx';
 import DocumentsPage from './pages/DocumentsPage.jsx';
+import DocumentDetailPage from './pages/DocumentDetailPage.jsx';
 import EvidencePage from './pages/EvidencePage.jsx';
-import AssetsPage from './pages/AssetsPage.jsx';
+import EvidenceDetailPage from './pages/EvidenceDetailPage.jsx';
+import TasksPage from './pages/TasksPage.jsx';
+import SharedPage from './pages/SharedPage.jsx';
+import SearchPage from './pages/SearchPage.jsx';
+import AssistantPage from './pages/AssistantPage.jsx';
+import CaseAssistantPage from './pages/CaseAssistantPage.jsx';
+import ReportsPage from './pages/ReportsPage.jsx';
 import AuditPage from './pages/AuditPage.jsx';
+import SecurityPage from './pages/SecurityPage.jsx';
+import UsersPage from './pages/UsersPage.jsx';
+import DepartmentsPage from './pages/DepartmentsPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
-import SecurityPage from './pages/SecurityPage.jsx';
-import VerificationPage from './pages/VerificationPage.jsx';
-import DocumentIntegrityPage from './pages/DocumentIntegrityPage.jsx';
-import EvidenceIntegrityPage from './pages/EvidenceIntegrityPage.jsx';
-import AuditIntegrityPage from './pages/AuditIntegrityPage.jsx';
-import Layout from './components/Layout.jsx';
-import { api } from './services/api.js';
+import AssetsPage from './pages/AssetsPage.jsx';
 
-function App() {
-    const [auth, setAuth] = useState(() => {
-        const stored = localStorage.getItem('casevault_auth');
-        return stored ? JSON.parse(stored) : { token: null, user: null };
-    });
+function GuestOnly({ children }) {
+    const { isAuthenticated } = useAuth();
+    const location = useLocation();
+    if (isAuthenticated) return <Navigate to="/dashboard" replace state={{ from: location.pathname }} />;
+    return children;
+}
 
-    const isAuthenticated = Boolean(auth.token);
+function RequirePermission({ permission, children }) {
+    const { can } = useAuth();
+    if (!can(permission)) {
+        return (
+            <PermissionNotice
+                message="Your role does not include permission for this area. Access is enforced server-side as well, so no data is exposed. Contact an administrator if you believe this is an error."
+            />
+        );
+    }
+    return children;
+}
 
-    const value = useMemo(() => ({
-        auth,
-        setAuth,
-        isAuthenticated,
-    }), [auth, isAuthenticated]);
-
-    const handleLogin = async (payload) => {
-        const response = await api.post('/auth/login', payload);
-        const { data } = response.data;
-        const nextAuth = { token: data.tokens?.accessToken || null, user: data.user || null, refreshToken: data.tokens?.refreshToken || null };
-        localStorage.setItem('casevault_auth', JSON.stringify(nextAuth));
-        setAuth(nextAuth);
-        return data;
-    };
-
-    const handleMfa = async (payload) => {
-        const response = await api.post('/auth/verify-mfa', payload);
-        const { data } = response.data;
-        const nextAuth = { token: data.tokens?.accessToken || null, user: data.user || null, refreshToken: data.tokens?.refreshToken || null };
-        localStorage.setItem('casevault_auth', JSON.stringify(nextAuth));
-        setAuth(nextAuth);
-        return data;
-    };
-
-    const handleSignup = async (payload) => {
-        const response = await api.post('/auth/signup', payload);
-        return response.data.data;
-    };
-
-    const handleLogout = async () => {
-        try {
-            if (auth.refreshToken) await api.post('/auth/logout', { refreshToken: auth.refreshToken });
-        } finally {
-        localStorage.removeItem('casevault_auth');
-        setAuth({ token: null, user: null, refreshToken: null });
-        }
-    };
-
+function AppRoutes() {
     return (
         <Routes>
-            <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
-            <Route path="/signup" element={<SignupPage onSignup={handleSignup} />} />
-            <Route path="/verify-mfa" element={<VerifyMfaPage onVerify={handleMfa} />} />
-            <Route path="/" element={isAuthenticated ? <Layout onLogout={handleLogout} user={auth.user} /> : <Navigate to="/login" replace />}>
-                <Route index element={<DashboardPage />} />
-                <Route path="cases" element={<CasesPage />} />
-                <Route path="cases/:id" element={<CaseDetailPage />} />
-                <Route path="documents" element={<DocumentsPage />} />
-                <Route path="documents/:id/integrity" element={<DocumentIntegrityPage />} />
-                <Route path="evidence" element={<EvidencePage />} />
-                <Route path="evidence/:id/integrity" element={<EvidenceIntegrityPage />} />
-                <Route path="assets" element={<AssetsPage />} />
-                <Route path="audit" element={<AuditPage />} />
-                <Route path="audit/integrity" element={<AuditIntegrityPage />} />
-                <Route path="security" element={<SecurityPage />} />
-                <Route path="verification" element={<VerificationPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="profile" element={<ProfilePage user={auth.user} />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<GuestOnly><LoginPage /></GuestOnly>} />
+            <Route path="/register" element={<GuestOnly><RegisterPage /></GuestOnly>} />
+            <Route path="/forgot-password" element={<GuestOnly><ForgotPasswordPage /></GuestOnly>} />
+
+            <Route
+                element={(
+                    <RequireAuth>
+                        <AppLayout />
+                    </RequireAuth>
+                )}
+            >
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/cases" element={<CasesPage />} />
+                <Route path="/cases/:id" element={<CaseDetailPage />} />
+                <Route path="/documents" element={<DocumentsPage />} />
+                <Route path="/documents/:id" element={<DocumentDetailPage />} />
+                <Route path="/evidence" element={<EvidencePage />} />
+                <Route path="/evidence/:id" element={<EvidenceDetailPage />} />
+                <Route path="/tasks" element={<TasksPage />} />
+                <Route path="/shared" element={<SharedPage />} />
+                <Route path="/search" element={<SearchPage />} />
+                <Route path="/ai" element={<RequirePermission permission="ai:analyze"><AssistantPage /></RequirePermission>} />
+                <Route path="/assistant" element={<Navigate to="/ai" replace />} />
+                <Route path="/ai/case/:caseId" element={<RequirePermission permission="ai:analyze"><CaseAssistantPage /></RequirePermission>} />
+                <Route path="/reports" element={<RequirePermission permission="report:read"><ReportsPage /></RequirePermission>} />
+                <Route path="/audit" element={<RequirePermission permission="audit:read"><AuditPage /></RequirePermission>} />
+                <Route path="/security" element={<RequirePermission permission="security:read"><SecurityPage /></RequirePermission>} />
+                <Route path="/users" element={<RequirePermission permission="user:read"><UsersPage /></RequirePermission>} />
+                <Route path="/departments" element={<DepartmentsPage />} />
+                <Route path="/assets" element={<AssetsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
             </Route>
-            <Route path="*" element={<Navigate to={isAuthenticated ? '/' : '/login'} replace />} />
+
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
     );
 }
 
-export default App;
+export default function App() {
+    return (
+        <ThemeProvider>
+            <ToastProvider>
+                <AuthProvider>
+                    <AppRoutes />
+                </AuthProvider>
+            </ToastProvider>
+        </ThemeProvider>
+    );
+}
