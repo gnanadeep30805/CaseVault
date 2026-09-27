@@ -8,6 +8,7 @@
         "start": "node src/server.js",
         "test": "node --test",
         "smoke": "node scripts/api-smoke.mjs",
+    "verify": "node scripts/final-verify.mjs",
         "import:synthetic-assets": "node scripts/import-synthetic-assets.js"
     },
     "dependencies": {
