@@ -127,6 +127,19 @@ export default function CasesPage() {
         { key: 'department', header: 'Department', render: (row) => <span className="text-xs">{row.department}</span> },
         { key: 'assignedOfficer', header: 'Officer', render: (row) => <span className="text-xs">{row.assignedOfficer || 'Unassigned'}</span> },
         { key: 'updatedAt', header: 'Updated', render: (row) => <span className="text-xs">{formatRelative(row.updatedAt)}</span> },
+        {
+            key: 'actions',
+            header: 'Details',
+            render: (row) => (
+                <Link
+                    to={`/cases/${row.id}`}
+                    className="cv-btn cv-btn-ghost whitespace-nowrap text-xs"
+                    aria-label={`View full case ${row.caseNumber}`}
+                >
+                    View full case
+                </Link>
+            ),
+        },
     ];
 
     return (
