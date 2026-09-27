@@ -96,9 +96,22 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 export function startServer({ port = env.port } = {}) {
-    return app.listen(port, () => {
+    const server = app.listen(port, () => {
         logger.info(`CaseVault backend listening on port ${port}`);
     });
+    server.on('error', (error) => {
+        if (error.code === 'EADDRINUSE') {
+            logger.error(
+                `Port ${port} is already in use. Another CaseVault backend is probably still running.\n`
+                + `Stop it first, or start this one on a different port:  PORT=4001 npm run dev\n`
+                + `On Windows, find and stop it with:  netstat -ano | findstr :${port}`,
+            );
+        } else {
+            logger.error(`Failed to start the CaseVault backend: ${error.message}`);
+        }
+        process.exit(1);
+    });
+    return server;
 }
 
 if (process.env.CASEVAULT_NO_LISTEN !== '1') {
