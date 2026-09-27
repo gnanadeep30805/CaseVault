@@ -12,10 +12,53 @@ A security-first web platform for managing investigation cases, documents, evide
 [![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![JWT](https://img.shields.io/badge/Auth-JWT%20%2B%20TOTP-7C3AED)](https://jwt.io/)
 [![Security](https://img.shields.io/badge/Security-AES--256--GCM%20%7C%20SHA--256-DC2626)](#security-model)
+[![Tests](https://img.shields.io/badge/tests-19%20unit%20%2B%20205%20smoke%20%2B%2043%20journey-success)](#6-run-the-tests)
+[![Status](https://img.shields.io/badge/status-working%20prototype-orange)](#current-implementation-vs-production-roadmap)
+[![License](https://img.shields.io/badge/license-undeclared-lightgrey)](#license)
 
 </div>
 
 ---
+
+## Quick Start
+
+```bash
+git clone https://github.com/gnanadeep30805/CaseVault.git
+cd CaseVault
+npm --prefix backend install
+npm --prefix frontend install
+npm --prefix backend start      # API on :4000
+npm --prefix frontend run dev  # app on :5173
+```
+
+Then open **http://localhost:5173** and click any demo account on the sign-in
+screen to auto-fill it. Every account uses the password `password123`.
+
+> Requires Node.js LTS. No `.env` is needed — the development defaults work
+> as-is. See [Getting Started](#getting-started) for configuration.
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [The Problem](#the-problem)
+- [The Solution](#the-solution)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Technology Stack](#technology-stack)
+- [Project Structure](#project-structure)
+- [Application Modules](#application-modules)
+- [API](#api)
+- [Getting Started](#getting-started)
+- [Local Development](#local-development)
+- [Security Model](#security-model)
+- [Cryptographic Design](#cryptographic-design)
+- [Implementation vs Production Roadmap](#current-implementation-vs-production-roadmap)
+- [Documentation](#documentation)
+- [Security Considerations](#security-considerations)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Overview
 
@@ -374,7 +417,7 @@ flowchart TD
 | Integrity | Hash chains, Merkle trees |
 | Logging | Pino |
 | Persistence | JSON metadata store + encrypted `.cvault` files |
-| Testing | Node.js built-in test runner, plus an API smoke suite |
+| Testing | Node.js built-in test runner, 205-check API smoke suite, 43-check journey suite |
 | Language | JavaScript / JSX |
 
 ---
@@ -401,7 +444,7 @@ CaseVault/
 │   │   ├── middleware/     auth, error handling
 │   │   ├── config/         env, logger
 │   │   └── server.js
-│   ├── scripts/            api-smoke.mjs
+│   ├── scripts/            api-smoke.mjs, final-verify.mjs
 │   ├── package.json
 │   └── data/               runtime JSON store and encrypted documents (gitignored)
 │
@@ -459,6 +502,7 @@ POST /api/v1/auth/register
 POST /api/v1/auth/login
 POST /api/v1/auth/verify-mfa
 POST /api/v1/auth/demo-code          (development only)
+GET  /api/v1/auth/demo-accounts     (development only)
 POST /api/v1/auth/refresh
 POST /api/v1/auth/logout
 GET  /api/v1/auth/me
@@ -660,16 +704,20 @@ The API seeds seven demo accounts. Every one of them uses the password
 | `forensics@casevault.local` | Investigation Officer | CONFIDENTIAL | Disabled |
 | `disabled@casevault.local` | Viewer | INTERNAL | Disabled (cannot sign in) |
 
-Where MFA is required, the sign-in screen shows a **Get current test code**
+Where MFA is required, the sign-in screen shows a **Get development MFA code**
 button. It calls `POST /api/v1/auth/demo-code`, which is refused whenever
-`ALLOW_DEMO_MFA=false` or `NODE_ENV=production`.
+`ALLOW_DEMO_MFA=false` or `NODE_ENV=production`. The endpoint returns the
+current code for one of the six canonical seeded accounts only, so it cannot be
+used to escalate onto an arbitrary account. Codes rotate every 30 seconds and
+each challenge is single-use.
 
 ### 6. Run the tests
 
 ```bash
 cd backend
-npm test          # unit tests
-npm run smoke     # end-to-end API and authorization suite
+npm test          # 19 unit tests
+npm run smoke     # 205-check end-to-end API and authorization suite
+npm run verify    # 43-check journey, negative and security suite
 ```
 
 The smoke suite boots the API against a throwaway data directory in the
@@ -677,6 +725,19 @@ system temp folder, so it never touches `backend/data`. It raises the rate
 limit for its own process and asserts both positive and negative paths,
 including authorization denials, document and evidence integrity, the audit
 hash chain, document sharing, and the full password-reset lifecycle.
+
+`npm run verify` is also isolated (temp data directory, in-process server on
+port 4188, raised rate limits) so it is deterministic and never trips the
+authentication rate limiter. It covers negative authentication, the MFA
+lifecycle including single-use replay and challenge survival, an end-to-end
+case → document → evidence → asset journey, and cross-role least-privilege
+checks.
+
+> **Rate limits and automated testing.** Authentication is limited to 20
+> requests per 60 seconds and the wider API to 300 per 60 seconds. Any script
+> that logs in repeatedly will trip this and see false `401`s. Set
+> `RATE_LIMIT_AUTH_MAX` and `RATE_LIMIT_API_MAX` before starting the server if
+> you need to drive it programmatically.
 
 ---
 
@@ -785,7 +846,8 @@ CaseVault intentionally distinguishes between **implemented prototype functional
 - Authorization-filtered AI workspace, case chat, case summary and document analysis, with a
   deterministic local provider that makes no external network calls
 - AES-256-GCM document encryption at rest, SHA-256 integrity hashing, HMAC signing and audit hash chains
-- 19 unit tests and a 159-check end-to-end API smoke suite
+- 19 unit tests, a 205-check end-to-end API smoke suite, and a 43-check journey and
+  security-verification suite (`npm test`, `npm run smoke`, `npm run verify`)
 
 ### Not wired up
 
