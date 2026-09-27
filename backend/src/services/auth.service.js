@@ -236,6 +236,33 @@ export async function getDemoMfaCode({ identifier, password } = {}) {
     return { code: authenticator.generate(user.mfaSecret), validForSeconds: 30 };
 }
 
+const DEMO_ROLE_NOTES = {
+    Administrator: 'Full access. Manages users, assets, audit and security.',
+    Supervisor: 'Approves documents, manages assets and maintenance.',
+    'Investigation Officer': 'Creates cases, files documents, manages evidence.',
+    'Legal Officer': 'Reviews and signs shared documents.',
+    Analyst: 'Read-only analyst with AI and reporting access.',
+};
+
+const DEMO_ACCOUNT_IDS = ['u-admin', 'u-investigator', 'u-supervisor', 'u-legal', 'u-analyst', 'u-forensics'];
+
+export async function listDemoAccounts() {
+    if (env.isProduction || !env.allowDemoMfa) throw accessError('DEMO_ACCOUNTS_DISABLED', 'Demo accounts are disabled.', 404);
+    const users = await readCollection('users');
+    return users
+        .filter((user) => DEMO_ACCOUNT_IDS.includes(user.id) && user.status === 'active')
+        .map((user) => ({
+            name: user.name,
+            email: user.email,
+            username: user.username,
+            role: user.role,
+            department: user.department,
+            clearance: user.clearance,
+            mfaEnabled: user.mfaEnabled !== false,
+            note: DEMO_ROLE_NOTES[user.role] || '',
+        }));
+}
+
 export function verifyAccessToken(token) {
     try {
         return jwt.verify(token, env.jwtAccessSecret, { algorithms: ['HS256'] });

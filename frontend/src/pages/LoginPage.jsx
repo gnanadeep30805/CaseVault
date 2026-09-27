@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { KeyRound, LogIn, Mail, ShieldCheck } from 'lucide-react';
+import { KeyRound, LogIn, Mail, ShieldCheck, Users } from 'lucide-react';
 import AuthShell, { authAside } from '../components/layout/AuthShell.jsx';
 import Button from '../components/ui/Button.jsx';
 import { Input } from '../components/ui/Form.jsx';
 import { InlineError } from '../components/ui/States.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useDocumentTitle } from '../hooks/useResource.js';
-import { apiErrorCode, apiErrorMessage } from '../lib/apiClient.js';
+import { api, apiErrorCode, apiErrorMessage, unwrap } from '../lib/apiClient.js';
 
 export default function LoginPage() {
     const { login, verifyMfa, fetchDemoCode } = useAuth();
@@ -21,8 +21,23 @@ export default function LoginPage() {
     const [pending, setPending] = useState(false);
     const [demoPending, setDemoPending] = useState(false);
     const [demoCode, setDemoCode] = useState('');
+    const [demoAccounts, setDemoAccounts] = useState([]);
+    const [demoPassword, setDemoPassword] = useState('password123');
 
     useDocumentTitle('Sign in');
+
+    useEffect(() => {
+        let active = true;
+        api.get('/auth/demo-accounts', { skipAuth: true })
+            .then(unwrap)
+            .then((data) => {
+                if (!active) return;
+                setDemoAccounts(data?.accounts || []);
+                if (data?.password) setDemoPassword(data.password);
+            })
+            .catch(() => {});
+        return () => { active = false; };
+    }, []);
 
     const destination = location.state?.from || '/dashboard';
 
@@ -157,6 +172,46 @@ export default function LoginPage() {
                     {challenge ? 'Verify and sign in' : 'Sign in'}
                 </Button>
             </form>
+
+            {demoAccounts.length ? (
+                <div className="mt-4 rounded-lg border cv-divider bg-ink-50 px-3 py-3 dark:bg-ink-800/60">
+                    <p className="flex items-center gap-1.5 text-[0.7rem] font-bold text-ink-700 dark:text-ink-200">
+                        <Users size={12} aria-hidden="true" />
+                        Demo accounts for prototype testing
+                    </p>
+                    <p className="mt-1 text-[0.7rem] text-ink-500 dark:text-ink-400">
+                        Password for every account: <code className="font-semibold text-ink-700 dark:text-ink-200">{demoPassword}</code>. Click a row to fill the form.
+                    </p>
+                    <ul className="mt-2 space-y-1">
+                        {demoAccounts.map((account) => (
+                            <li key={account.email}>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIdentifier(account.email);
+                                        setPassword(demoPassword);
+                                        setOtp('');
+                                        setError('');
+                                        setChallenge(null);
+                                    }}
+                                    className="flex w-full items-center justify-between gap-2 rounded-md border cv-divider bg-white/70 px-2.5 py-1.5 text-left transition hover:border-linkblue-500/60 hover:bg-white dark:bg-ink-900/60 dark:hover:bg-ink-900"
+                                >
+                                    <span className="min-w-0">
+                                        <span className="block truncate text-[0.72rem] font-semibold text-ink-800 dark:text-ink-100">{account.role}</span>
+                                        <span className="block truncate text-[0.65rem] text-ink-500 dark:text-ink-400">{account.email}</span>
+                                    </span>
+                                    <span className="shrink-0 text-[0.6rem] font-bold uppercase tracking-wider text-ink-500 dark:text-ink-400">
+                                        {account.mfaEnabled ? 'MFA' : 'Direct'}
+                                    </span>
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                    <p className="mt-2 text-[0.65rem] text-ink-500 dark:text-ink-400">
+                        Accounts marked MFA need a one-time code — use “Get development MFA code” on the verification step.
+                    </p>
+                </div>
+            ) : null}
 
             <div className="mt-6 rounded-lg border cv-divider bg-ink-50 px-3 py-3 text-[0.7rem] text-ink-500 dark:bg-ink-800/60 dark:text-ink-400">
                 <p className="flex items-center gap-1.5 font-bold text-ink-700 dark:text-ink-200">

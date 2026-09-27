@@ -1,6 +1,6 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { changePassword, getDemoMfaCode, getCurrentUserFromToken, getMfaSetup, loginUser, logoutUser, refreshAccessToken, registerUser, requestPasswordReset, resetPassword, getUserById } from '../services/auth.service.js';
+import { changePassword, getDemoMfaCode, listDemoAccounts, getCurrentUserFromToken, getMfaSetup, loginUser, logoutUser, refreshAccessToken, registerUser, requestPasswordReset, resetPassword, getUserById } from '../services/auth.service.js';
 import { asyncRoute, sendData, sendError, textValue } from '../utils/route-helpers.js';
 
 const router = express.Router();
@@ -28,6 +28,11 @@ router.post('/mfa/verify', loginHandler);
 router.post('/demo-code', asyncRoute(async (req, res) => {
     const result = await getDemoMfaCode(req.body || {});
     return sendData(res, result);
+}));
+
+router.get('/demo-accounts', asyncRoute(async (req, res) => {
+    const accounts = await listDemoAccounts();
+    return sendData(res, { password: 'password123', accounts });
 }));
 
 router.post('/refresh', asyncRoute(async (req, res) => {
